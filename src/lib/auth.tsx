@@ -1,146 +1,111 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { atom, useAtom } from 'jotai';
+import { useRouter } from 'next/navigation';
+import { apiClient, User, LoginCredentials } from './api';
 
-// Tipos
-export interface User {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: 'MASTER_ADMIN' | 'SECTOR_ADMIN' | 'SECTOR_OPERATOR' | 'EMPLOYEE';
-  sector: string | null;
-  is_active: boolean;
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
-export interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+interface AuthProviderProps {
+  children: ReactNode;
 }
 
-// Atoms
-export const userAtom = atom<User | null>(null);
-export const isAuthenticatedAtom = atom<boolean>(false);
-export const isLoadingAtom = atom<boolean>(true);
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
-// Context
-const AuthContext = createContext<{
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<any>;
-  logout: () => void;
-  getCurrentUser: () => Promise<void>;
-} | null>(null);
-
-// Provider
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useAtom(userAtom);
-  const [isAuthenticated, setIsAuthenticated] = useAtom(isAuthenticatedAtom);
-  const [isLoading, setIsLoading] = useAtom(isLoadingAtom);
-
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/login/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: email, password }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Credenciais inválidas');
-      }
-
-      const data = await response.json();
-      
-      // Armazenar tokens
-      localStorage.setItem('accessToken', data.access);
-      localStorage.setItem('refreshToken', data.refresh);
-      
-      // Atualizar estado
-      setUser(data.user);
-      setIsAuthenticated(true);
-      setIsLoading(false);
-      
-      return data;
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    setUser(null);
-    setIsAuthenticated(false);
-    setIsLoading(false);
-    window.location.href = '/login';
-  };
-
-  const getCurrentUser = async () => {
-    try {
-      const token = localStorage.getItem('accessToken');
-      if (!token) {
+  // Verificar autenticação inicial
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        if (apiClient.isAuthenticated) {
+          const userData = await apiClient.getMe();
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        // Limpar tokens inválidos
+        await apiClient.logout();
+      } finally {
         setIsLoading(false);
-        return;
       }
+    };
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/users/me/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+    checkAuth();
+  }, []);
 
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        setIsAuthenticated(true);
-      } else {
-        // Token inválido, limpar estado
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        setUser(null);
-        setIsAuthenticated(false);
-      }
+  const login = async (credentials: LoginCredentials) => {
+    try {
+      setIsLoading(true);
+      console.log('🔐 Tentando fazer login...', credentials.email);
+      
+      const response = await apiClient.login(credentials);
+      console.log('✅ Login bem-sucedido:', response);
+      
+      setUser(response.user);
+      console.log('👤 Usuário definido no contexto:', response.user);
+      
+      console.log('🔄 Redirecionando para /dashboard...');
+      router.push('/dashboard');
     } catch (error) {
-      console.error('Erro ao obter usuário:', error);
-      setUser(null);
-      setIsAuthenticated(false);
+      console.error('❌ Erro no login:', error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    getCurrentUser();
-  }, []);
+  const logout = async () => {
+    try {
+      await apiClient.logout();
+      setUser(null);
+      router.push('/login');
+    } catch (error) {
+      console.error('Erro no logout:', error);
+    }
+  };
 
-  return (
-    <AuthContext.Provider value={{
-      user,
-      isAuthenticated,
-      isLoading,
-      login,
-      logout,
-      getCurrentUser,
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
-}
+  const refreshUser = async () => {
+    try {
+      if (apiClient.isAuthenticated) {
+        const userData = await apiClient.getMe();
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      await logout();
+    }
+  };
 
-// Hook
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-  }
-  return context;
-}
+  const value: AuthContextType = {
+    user,
+    isLoading,
+    isAuthenticated: !!user,
+    login,
+    logout,
+    refreshUser,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
 
 // Funções de verificação de permissões atualizadas
 export const hasRole = (user: User | null, role: User['role']) => {

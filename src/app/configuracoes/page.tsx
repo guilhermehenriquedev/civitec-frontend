@@ -1,42 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/auth';
 import Layout from '@/components/layout/Layout';
+import Link from 'next/link';
 
 export default function ConfiguracoesPage() {
   const [activeTab, setActiveTab] = useState('general');
-  const [userRole, setUserRole] = useState<string>('MASTER_ADMIN');
-  const [userSector, setUserSector] = useState<string>('');
-
-  useEffect(() => {
-    // Simular dados do usuário logado
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      // Em uma implementação real, aqui seria feita uma chamada para obter os dados do usuário
-      setUserRole('MASTER_ADMIN'); // Será sobrescrito pelos dados reais
-      setUserSector(''); // Será definido baseado no usuário real
-    }
-  }, []);
-
-  const handleSaveGeneral = () => {
-    // Simular salvamento das configurações gerais
-    alert('Configurações gerais salvas com sucesso! Em uma implementação real, aqui seriam enviadas para o servidor.');
-  };
-
-  const handleSaveUsers = () => {
-    // Simular salvamento das configurações de usuários
-    alert('Configurações de usuários salvas com sucesso! Em uma implementação real, aqui seriam enviadas para o servidor.');
-  };
-
-  const handleSaveSystem = () => {
-    // Simular salvamento das configurações do sistema
-    alert('Configurações do sistema salvas com sucesso! Em uma implementação real, aqui seriam enviadas para o servidor.');
-  };
+  const { user } = useAuth();
 
   // Verificar permissões baseado no perfil
-  const canAccessSettings = userRole === 'MASTER_ADMIN';
-  const canManageUsers = userRole === 'MASTER_ADMIN';
-  const canManageSystem = userRole === 'MASTER_ADMIN';
+  const canAccessSettings = user?.is_master_admin;
+  const canManageUsers = user?.is_master_admin;
+  const canManageSystem = user?.is_master_admin;
 
   if (!canAccessSettings) {
     return (
@@ -65,12 +41,12 @@ export default function ConfiguracoesPage() {
           <p className="text-gray-600 mt-2">Configurações gerais, usuários e sistema</p>
           <div className="mt-2 text-sm text-gray-500">
             <span className="font-medium">Perfil:</span> {
-              userRole === 'MASTER_ADMIN' ? 'Administrador Geral' :
-              userRole === 'SECTOR_ADMIN' ? 'Gerente de Setor' :
-              userRole === 'SECTOR_OPERATOR' ? 'Operacional' :
+              user?.is_master_admin ? 'Administrador Geral' :
+              user?.is_sector_admin ? 'Gerente de Setor' :
+              user?.is_sector_operator ? 'Operacional' :
               'Funcionário'
             }
-            {userSector && ` - Setor: ${userSector}`}
+            {user?.sector && ` - Setor: ${user.sector}`}
           </div>
         </div>
 
@@ -190,7 +166,7 @@ export default function ConfiguracoesPage() {
                 
                 <div className="flex justify-end">
                   <button
-                    onClick={handleSaveGeneral}
+                    onClick={() => alert('Configurações gerais salvas com sucesso! Em uma implementação real, aqui seriam enviadas para o servidor.')}
                     className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
                   >
                     Salvar Configurações
@@ -201,7 +177,18 @@ export default function ConfiguracoesPage() {
 
             {activeTab === 'users' && canManageUsers && (
               <div className="space-y-6">
-                <h3 className="text-lg font-medium text-gray-900">Configurações de Usuários</h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-medium text-gray-900">Configurações de Usuários</h3>
+                  <Link
+                    href="/configuracoes/usuarios"
+                    className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors flex items-center"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Gerenciar Usuários
+                  </Link>
+                </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -281,7 +268,7 @@ export default function ConfiguracoesPage() {
                 
                 <div className="flex justify-end">
                   <button
-                    onClick={handleSaveUsers}
+                    onClick={() => alert('Configurações de usuários salvas com sucesso! Em uma implementação real, aqui seriam enviadas para o servidor.')}
                     className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
                   >
                     Salvar Configurações
@@ -370,7 +357,7 @@ export default function ConfiguracoesPage() {
                     Testar Configurações
                   </button>
                   <button
-                    onClick={handleSaveSystem}
+                    onClick={() => alert('Configurações do sistema salvas com sucesso! Em uma implementação real, aqui seriam enviadas para o servidor.')}
                     className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
                   >
                     Salvar Configurações

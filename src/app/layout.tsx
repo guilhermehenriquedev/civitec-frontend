@@ -6,8 +6,8 @@ import { AuthProvider } from '@/lib/auth';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'CiviTec - Sistema de Gestão Municipal',
-  description: 'Sistema integrado para gestão de recursos humanos, tributos, licitações e obras',
+  title: 'CiviTec - Inovação pública, gestão sem papel',
+  description: 'Sistema de gestão municipal moderno e eficiente',
 };
 
 export default function RootLayout({
