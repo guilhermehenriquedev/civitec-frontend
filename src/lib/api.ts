@@ -194,6 +194,17 @@ class ApiClient {
     return response.data;
   }
 
+  // Métodos para usuários
+  async getUsers(): Promise<any[]> {
+    const response = await this.client.get('/api/users/');
+    return response.data;
+  }
+
+  async updateUser(userId: number, userData: any): Promise<{ message: string; user: any }> {
+    const response = await this.client.patch(`/api/users/${userId}/`, userData);
+    return response.data;
+  }
+
   // Métodos públicos para convites
   async validateInvite(token: string, securityCode: string): Promise<{
     valid: boolean;
