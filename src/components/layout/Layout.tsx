@@ -1,7 +1,6 @@
 'use client';
 
 import { ReactNode, useState, useEffect } from 'react';
-import { useAuth } from '@/lib/auth';
 import Sidebar from './Sidebar';
 
 interface LayoutProps {
@@ -9,29 +8,25 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const [isLayoutLoading, setIsLayoutLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Aguardar a verificação de autenticação
-    if (!isLoading) {
-      setIsLayoutLoading(false);
+    // Simular verificação de autenticação
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      setIsLoading(false);
+    } else {
+      // Se não há token, redirecionar para login
+      window.location.href = '/login';
     }
-  }, [isLoading]);
+  }, []);
 
-  // Se ainda está verificando autenticação
-  if (isLoading || isLayoutLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
       </div>
     );
-  }
-
-  // Se não está autenticado, redirecionar para login
-  if (!isAuthenticated) {
-    window.location.href = '/login';
-    return null;
   }
 
   return (
