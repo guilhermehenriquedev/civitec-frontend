@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useAuth } from '@/lib/auth';
 import { apiClient, InviteData, InviteResponse } from '@/lib/api';
 import Layout from '@/components/layout/Layout';
+import { Modal, Button, Input, Select, Table, Badge, Card } from '@/components';
 import { 
   UserPlusIcon, 
   EnvelopeIcon, 
@@ -296,94 +297,79 @@ export default function GerenciadorConvitesPage() {
         )}
 
         {/* Tabela de Convites */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Convites Enviados</h3>
-          </div>
-          
+        <Card title="Convites Enviados">
           {isLoading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Usuário
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Papel
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Setor
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Criado em
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Expira em
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {invites.map((invite) => (
-                    <tr key={invite.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{invite.full_name}</div>
-                          <div className="text-sm text-gray-500">{invite.email}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {getRoleDisplay(invite.role_code)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {getSectorDisplay(invite.sector_code)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(invite.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(invite.created_at).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {new Date(invite.expires_at).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => handleEditInvite(invite)}
-                            className="text-indigo-600 hover:text-indigo-900"
-                            title="Editar convite"
-                          >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                          {invite.status === 'PENDING' && (
-                            <button
-                              onClick={() => handleCancelInvite(invite.id)}
-                              className="text-red-600 hover:text-red-900"
-                              title="Cancelar convite"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              columns={[
+                {
+                  key: 'user',
+                  label: 'Usuário',
+                  render: (_, invite) => (
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{invite.full_name}</div>
+                      <div className="text-sm text-gray-500">{invite.email}</div>
+                    </div>
+                  )
+                },
+                {
+                  key: 'role_code',
+                  label: 'Papel',
+                  render: (roleCode) => getRoleDisplay(roleCode)
+                },
+                {
+                  key: 'sector_code',
+                  label: 'Setor',
+                  render: (sectorCode) => getSectorDisplay(sectorCode)
+                },
+                {
+                  key: 'status',
+                  label: 'Status',
+                  render: (status) => getStatusBadge(status)
+                },
+                {
+                  key: 'created_at',
+                  label: 'Criado em',
+                  render: (createdAt) => new Date(createdAt).toLocaleDateString('pt-BR')
+                },
+                {
+                  key: 'expires_at',
+                  label: 'Expira em',
+                  render: (expiresAt) => new Date(expiresAt).toLocaleDateString('pt-BR')
+                },
+                {
+                  key: 'actions',
+                  label: 'Ações',
+                  render: (_, invite) => (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditInvite(invite)}
+                        className="text-indigo-600 hover:text-indigo-900"
+                        title="Editar convite"
+                      >
+                        <PencilIcon className="w-4 h-4" />
+                      </button>
+                      {invite.status === 'PENDING' && (
+                        <button
+                          onClick={() => handleCancelInvite(invite.id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Cancelar convite"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  )
+                }
+              ]}
+              data={invites}
+              emptyMessage="Nenhum convite encontrado"
+            />
           )}
-        </div>
+        </Card>
 
         {/* Modal de Novo Convite */}
         {showInviteForm && (
