@@ -32,9 +32,18 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
+      console.log('🚀 Iniciando processo de login...', data.email);
+      
       await login(data);
+      console.log('✅ Login concluído com sucesso!');
+      
     } catch (error: any) {
-      console.error('Erro no login:', error);
+      console.error('❌ Erro no login:', error);
+      console.error('❌ Detalhes do erro:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
       
       // Tratar diferentes tipos de erro
       if (error.response?.status === 401) {

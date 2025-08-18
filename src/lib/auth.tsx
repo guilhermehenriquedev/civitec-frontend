@@ -36,21 +36,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        console.log('🔍 Verificando autenticação inicial...');
+        console.log('🔍 apiClient.isAuthenticated:', apiClient.isAuthenticated);
+        
         if (apiClient.isAuthenticated) {
+          console.log('🔍 Usuário autenticado, buscando dados...');
           const userData = await apiClient.getMe();
+          console.log('🔍 Dados do usuário obtidos:', userData);
           setUser(userData);
+        } else {
+          console.log('🔍 Usuário não autenticado');
+          setUser(null);
+          // Redirecionar para login se não estiver autenticado
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            console.log('🔍 Redirecionando para login...');
+            router.replace('/login');
+          }
         }
       } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
+        console.error('❌ Erro ao verificar autenticação:', error);
         // Limpar tokens inválidos
         await apiClient.logout();
+        setUser(null);
+        // Redirecionar para login em caso de erro
+        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+          console.log('🔍 Redirecionando para login devido a erro...');
+          router.replace('/login');
+        }
       } finally {
+        console.log('🔍 Verificação de autenticação concluída');
         setIsLoading(false);
       }
     };
 
     checkAuth();
-  }, []);
+  }, [router]);
 
   const login = async (credentials: LoginCredentials) => {
     try {
@@ -60,13 +80,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await apiClient.login(credentials);
       console.log('✅ Login bem-sucedido:', response);
       
+      // Definir o usuário no estado
       setUser(response.user);
       console.log('👤 Usuário definido no contexto:', response.user);
       
+      // Aguardar um pouco antes de redirecionar para garantir que o estado foi atualizado
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       console.log('🔄 Redirecionando para /dashboard...');
-      router.push('/dashboard');
+      console.log('📍 Estado atual do usuário:', response.user);
+      console.log('📍 Estado atual do isAuthenticated:', !!response.user);
+      
+      // Usar replace em vez de push para evitar problemas de navegação
+      router.replace('/dashboard');
+      
+      // Verificar se o redirecionamento funcionou
+      setTimeout(() => {
+        console.log('📍 Verificação pós-redirecionamento - usuário:', user);
+        console.log('📍 Verificação pós-redirecionamento - isAuthenticated:', !!user);
+      }, 500);
+      
     } catch (error) {
       console.error('❌ Erro no login:', error);
+      // Garantir que o usuário seja limpo em caso de erro
+      setUser(null);
       throw error;
     } finally {
       setIsLoading(false);
@@ -77,9 +114,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       await apiClient.logout();
       setUser(null);
-      router.push('/login');
+      router.replace('/login');
     } catch (error) {
       console.error('Erro no logout:', error);
+      // Mesmo com erro, limpar o usuário
+      setUser(null);
+      router.replace('/login');
     }
   };
 

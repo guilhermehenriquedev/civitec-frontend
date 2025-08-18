@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/auth';
 import Layout from '@/components/layout/Layout';
 
 interface DashboardData {
@@ -27,43 +28,21 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    // Simular dados do usuário para demonstração
-    setUser({
-      first_name: 'Usuário',
-      role: 'MASTER_ADMIN',
-      sector: 'RH'
-    });
-
     const fetchDashboardData = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
-          // Dados mock para demonstração
-          setDashboardData({
-            rh: { totalEmployees: 45, pendingVacations: 8, activeEmployees: 42 },
-            tributos: { totalTaxpayers: 1250, monthlyRevenue: 125000, pendingInvoices: 23 },
-            licitacao: { activeProcesses: 12, completedProcesses: 8, totalContracts: 15 },
-            obras: { activeProjects: 18, completedProjects: 5, totalBudget: 2500000 },
-          });
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/reporting/dashboard-master/`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
+        // Dados mock para demonstração
+        setDashboardData({
+          rh: { totalEmployees: 45, pendingVacations: 8, activeEmployees: 42 },
+          tributos: { totalTaxpayers: 1250, monthlyRevenue: 125000, pendingInvoices: 23 },
+          licitacao: { activeProcesses: 12, completedProcesses: 8, totalContracts: 15 },
+          obras: { activeProjects: 18, completedProjects: 5, totalBudget: 2500000 },
         });
-
-        if (response.ok) {
-          const data = await response.json();
-          setDashboardData(data);
-        }
+        setLoading(false);
       } catch (error) {
         console.error('Erro ao carregar dashboard:', error);
         // Dados mock para demonstração
@@ -73,7 +52,6 @@ export default function DashboardPage() {
           licitacao: { activeProcesses: 12, completedProcesses: 8, totalContracts: 15 },
           obras: { activeProjects: 18, completedProjects: 5, totalBudget: 2500000 },
         });
-      } finally {
         setLoading(false);
       }
     };

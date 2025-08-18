@@ -267,7 +267,9 @@ class ApiClient {
 
   // Getters para verificar estado da autenticação
   get isAuthenticated(): boolean {
-    return !!this.accessToken;
+    const hasToken = !!this.accessToken;
+    console.log('🔐 ApiClient.isAuthenticated:', hasToken, 'Token:', this.accessToken ? 'Presente' : 'Ausente');
+    return hasToken;
   }
 
   get getAccessToken(): string | null {
