@@ -46,7 +46,7 @@ export default function UsuariosPage() {
         {/* Cards de Navegação */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Gerenciador de Convites */}
-          <Link href="/configuracoes/usuarios/convites">
+          <Link href="/usuarios/convites">
             <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 hover:border-indigo-300">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
@@ -69,7 +69,7 @@ export default function UsuariosPage() {
           </Link>
 
           {/* Gerenciador de Usuários */}
-          <Link href="/configuracoes/usuarios/usuarios">
+          <Link href="/usuarios/usuarios">
             <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer border border-gray-200 hover:border-indigo-300">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
