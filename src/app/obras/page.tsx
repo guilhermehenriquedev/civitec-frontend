@@ -2,127 +2,341 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
-
-interface WorkProject {
-  id: number;
-  name: string;
-  contract?: string;
-  location_lat: number;
-  location_lng: number;
-  budget: number;
-  status: string;
-}
-
-interface WorkProgress {
-  id: number;
-  project: WorkProject;
-  ref_month: string;
-  physical_pct: number;
-  financial_pct: number;
-  notes: string;
-}
+import { ProjectModal } from '@/components/obras/ProjectModal';
+import { ProgressModal } from '@/components/obras/ProgressModal';
+import { PhotoModal } from '@/components/obras/PhotoModal';
+import { ObrasMap } from '@/components/obras/ObrasMap';
+import Button from '@/components/buttons/Button';
+import Input from '@/components/forms/Input';
+import Select from '@/components/forms/Select';
+import { obrasService } from '@/services/obrasService';
+import {
+  WorkProject,
+  WorkProgress,
+  WorkPhoto,
+  ObrasDashboard,
+  CreateUpdateProject,
+  CreateUpdateProgress,
+  CreateUpdatePhoto,
+  ProjectFilters
+} from '@/types/obras';
 
 export default function ObrasPage() {
+  // Estados principais
+  const [dashboard, setDashboard] = useState<ObrasDashboard | null>(null);
   const [projects, setProjects] = useState<WorkProject[]>([]);
   const [progress, setProgress] = useState<WorkProgress[]>([]);
+  const [photos, setPhotos] = useState<WorkPhoto[]>([]);
+  const [contracts, setContracts] = useState<any[]>([]);
+  
+  // Estados de UI
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('projects');
   const [userRole, setUserRole] = useState<string>('MASTER_ADMIN');
   const [userSector, setUserSector] = useState<string>('OBRAS');
+  
+  // Estados dos modais
+  const [projectModal, setProjectModal] = useState<{
+    isOpen: boolean;
+    project?: WorkProject;
+  }>({ isOpen: false });
+  
+  const [progressModal, setProgressModal] = useState<{
+    isOpen: boolean;
+    progress?: WorkProgress;
+  }>({ isOpen: false });
+  
+  const [photoModal, setPhotoModal] = useState<{
+    isOpen: boolean;
+    photo?: WorkPhoto;
+  }>({ isOpen: false });
+  
+  // Estados de operações
+  const [operationLoading, setOperationLoading] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<WorkProject | null>(null);
+  
+  // Estados de filtros
+  const [projectFilters, setProjectFilters] = useState<ProjectFilters>({});
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    // Simular dados do usuário logado
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      // Em uma implementação real, aqui seria feita uma chamada para obter os dados do usuário
-      setUserRole('MASTER_ADMIN'); // Será sobrescrito pelos dados reais
-      setUserSector('OBRAS');
-    }
-
-    // Dados mock para demonstração
-    const mockProjects: WorkProject[] = [
-      {
-        id: 1,
-        name: 'Construção da Escola Municipal',
-        contract: 'CT001/2024',
-        location_lat: -23.5505,
-        location_lng: -46.6333,
-        budget: 2500000.00,
-        status: 'EM EXECUÇÃO'
-      },
-      {
-        id: 2,
-        name: 'Reforma da Praça Central',
-        contract: 'CT002/2024',
-        location_lat: -23.5510,
-        location_lng: -46.6340,
-        budget: 800000.00,
-        status: 'PLANEJAMENTO'
-      },
-      {
-        id: 3,
-        name: 'Pavimentação da Rua das Flores',
-        contract: 'CT003/2024',
-        location_lat: -23.5490,
-        location_lng: -46.6320,
-        budget: 1200000.00,
-        status: 'CONCLUÍDO'
-      }
-    ];
-
-    const mockProgress: WorkProgress[] = [
-      {
-        id: 1,
-        project: mockProjects[0],
-        ref_month: '2024-01',
-        physical_pct: 35,
-        financial_pct: 28,
-        notes: 'Fundação concluída, iniciando estrutura'
-      },
-      {
-        id: 2,
-        project: mockProjects[1],
-        ref_month: '2024-01',
-        physical_pct: 15,
-        financial_pct: 12,
-        notes: 'Projeto executivo em aprovação'
-      },
-      {
-        id: 3,
-        project: mockProjects[2],
-        ref_month: '2024-01',
-        physical_pct: 100,
-        financial_pct: 95,
-        notes: 'Obra concluída, aguardando vistoria final'
-      }
-    ];
-
-    setProjects(mockProjects);
-    setProgress(mockProgress);
-    setLoading(false);
+    loadInitialData();
   }, []);
 
-  const handleViewProgress = (projectId: number) => {
-    // Simular visualização de progresso
-    alert(`Progresso do projeto ${projectId} visualizado! Em uma implementação real, aqui seria exibido o progresso detalhado.`);
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      
+      // Dados mock temporários para teste
+      const mockProjects = [
+        {
+          id: 1,
+          name: 'Construção da Escola Municipal',
+          contract: 1,
+          contract_details: { id: 1, number: 'CT001/2024', objeto: 'Construção de escola', supplier_name: 'Construtora ABC', valor_total: 2500000, start_dt: '2024-01-01', end_dt: '2024-12-31' },
+          location_lat: -23.5505,
+          location_lng: -46.6333,
+          address: 'Rua das Flores, 123 - Centro',
+          budget: 2500000,
+          status: 'EXECUCAO',
+          status_display: 'Em Execução',
+          start_date: '2024-01-15',
+          expected_end_date: '2024-12-30',
+          actual_end_date: undefined,
+          description: 'Construção de escola municipal com 12 salas de aula',
+          responsible: 'Eng. Carlos Mendes',
+          progress_set: [],
+          photos: [],
+          progress_physical: 65,
+          progress_financial: 55,
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z'
+        }
+      ];
+
+      const mockDashboard = {
+        total_projects: 1,
+        projects_in_execution: 1,
+        average_progress: 65,
+        total_budget: 2500000,
+        projects_by_status: { 'EXECUCAO': 1 },
+        recent_progress: []
+      };
+
+      const mockContracts = [
+        { id: 1, number: 'CT001/2024', objeto: 'Construção de escola', supplier_name: 'Construtora ABC', valor_total: 2500000, start_dt: '2024-01-01', end_dt: '2024-12-31' }
+      ];
+
+      console.log('Usando dados mock para teste');
+      
+      // Usar dados mock por enquanto
+      setProjects(mockProjects);
+      setContracts(mockContracts);
+      setDashboard(mockDashboard);
+      
+      // Simular dados do usuário (em produção seria obtido do contexto de auth)
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        // Aqui seria feita uma chamada para obter os dados do usuário
+        setUserRole('MASTER_ADMIN');
+        setUserSector('OBRAS');
+      }
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      // Em caso de erro, definir arrays vazios
+      setProjects([]);
+      setContracts([]);
+      setDashboard(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleUploadPhoto = (projectId: number) => {
-    // Simular upload de foto
-    alert(`Upload de foto para o projeto ${projectId} iniciado! Em uma implementação real, aqui seria feito o upload da imagem.`);
+  const loadProgress = async () => {
+    try {
+      const progressData = await obrasService.getProgress();
+      setProgress(progressData);
+    } catch (error) {
+      console.error('Erro ao carregar progresso:', error);
+    }
   };
 
-  const handleUpdateProgress = (projectId: number) => {
-    // Simular atualização de progresso
-    alert(`Atualização de progresso para o projeto ${projectId} iniciada! Em uma implementação real, aqui seria aberto o formulário de atualização.`);
+  const loadPhotos = async () => {
+    try {
+      const photosData = await obrasService.getPhotos();
+      setPhotos(photosData);
+    } catch (error) {
+      console.error('Erro ao carregar fotos:', error);
+    }
+  };
+
+  // Handlers para projetos
+  const handleCreateProject = async (data: CreateUpdateProject) => {
+    try {
+      setOperationLoading(true);
+      await obrasService.createProject(data);
+      await loadInitialData();
+      setProjectModal({ isOpen: false });
+    } catch (error) {
+      console.error('Erro ao criar projeto:', error);
+      alert('Erro ao criar projeto. Tente novamente.');
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  const handleUpdateProject = async (data: CreateUpdateProject) => {
+    if (!projectModal.project) return;
+    
+    try {
+      setOperationLoading(true);
+      await obrasService.updateProject(projectModal.project.id, data);
+      await loadInitialData();
+      setProjectModal({ isOpen: false });
+    } catch (error) {
+      console.error('Erro ao atualizar projeto:', error);
+      alert('Erro ao atualizar projeto. Tente novamente.');
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  const handleDeleteProject = async (projectId: number) => {
+    if (!confirm('Tem certeza que deseja excluir este projeto?')) return;
+    
+    try {
+      setOperationLoading(true);
+      await obrasService.deleteProject(projectId);
+      await loadInitialData();
+    } catch (error) {
+      console.error('Erro ao excluir projeto:', error);
+      alert('Erro ao excluir projeto. Tente novamente.');
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  // Handlers para progresso
+  const handleCreateProgress = async (data: CreateUpdateProgress) => {
+    try {
+      setOperationLoading(true);
+      console.log('Dados sendo enviados para criar progresso:', data);
+      await obrasService.createProgress(data);
+      await loadProgress();
+      setProgressModal({ isOpen: false });
+    } catch (error) {
+      console.error('Erro ao criar progresso:', error);
+      alert('Erro ao criar progresso. Tente novamente.');
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  const handleUpdateProgress = async (data: CreateUpdateProgress) => {
+    if (!progressModal.progress) return;
+    
+    try {
+      setOperationLoading(true);
+      await obrasService.updateProgress(progressModal.progress.id, data);
+      await loadProgress();
+      setProgressModal({ isOpen: false });
+    } catch (error) {
+      console.error('Erro ao atualizar progresso:', error);
+      alert('Erro ao atualizar progresso. Tente novamente.');
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  const handleDeleteProgress = async (progressId: number) => {
+    if (!confirm('Tem certeza que deseja excluir este registro de progresso?')) return;
+    
+    try {
+      setOperationLoading(true);
+      await obrasService.deleteProgress(progressId);
+      await loadProgress();
+    } catch (error) {
+      console.error('Erro ao excluir progresso:', error);
+      alert('Erro ao excluir progresso. Tente novamente.');
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  // Handlers para fotos
+  const handleCreatePhoto = async (data: CreateUpdatePhoto) => {
+    try {
+      setOperationLoading(true);
+      await obrasService.createPhoto(data);
+      await loadPhotos();
+      setPhotoModal({ isOpen: false });
+    } catch (error) {
+      console.error('Erro ao criar foto:', error);
+      alert('Erro ao criar foto. Tente novamente.');
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  const handleUpdatePhoto = async (data: Partial<CreateUpdatePhoto>) => {
+    if (!photoModal.photo) return;
+    
+    try {
+      setOperationLoading(true);
+      await obrasService.updatePhoto(photoModal.photo.id, data);
+      await loadPhotos();
+      setPhotoModal({ isOpen: false });
+    } catch (error) {
+      console.error('Erro ao atualizar foto:', error);
+      alert('Erro ao atualizar foto. Tente novamente.');
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  const handleDeletePhoto = async (photoId: number) => {
+    if (!confirm('Tem certeza que deseja excluir esta foto?')) return;
+    
+    try {
+      setOperationLoading(true);
+      await obrasService.deletePhoto(photoId);
+      await loadPhotos();
+    } catch (error) {
+      console.error('Erro ao excluir foto:', error);
+      alert('Erro ao excluir foto. Tente novamente.');
+    } finally {
+      setOperationLoading(false);
+    }
+  };
+
+  // Handlers de UI
+  const handleProjectClick = (project: WorkProject) => {
+    setSelectedProject(project);
+    setActiveTab('projects');
+  };
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    
+    // Carregar dados específicos da aba
+    if (tab === 'progress') {
+      loadProgress();
+    } else if (tab === 'map') {
+      loadPhotos();
+    }
+  };
+
+  const handleProjectSubmit = (data: CreateUpdateProject) => {
+    if (projectModal.project) {
+      handleUpdateProject(data);
+    } else {
+      handleCreateProject(data);
+    }
+  };
+
+  const handleProgressSubmit = (data: CreateUpdateProgress) => {
+    if (progressModal.progress) {
+      handleUpdateProgress(data);
+    } else {
+      handleCreateProgress(data);
+    }
+  };
+
+  const handlePhotoSubmit = (data: CreateUpdatePhoto) => {
+    if (photoModal.photo) {
+      handleUpdatePhoto(data);
+    } else {
+      handleCreatePhoto(data);
+    }
   };
 
   // Verificar permissões baseado no perfil
-  const canViewProjects = userRole === 'MASTER_ADMIN' || userRole === 'SECTOR_ADMIN' || userRole === 'SECTOR_OPERATOR';
+  const canViewProjects = userRole === 'MASTER_ADMIN' || userRole === 'SECTOR_ADMIN' || userRole === 'SECTOR_OPERATOR' || userRole === 'EMPLOYEE';
   const canManageProjects = userRole === 'MASTER_ADMIN' || userRole === 'SECTOR_ADMIN';
-  const canViewProgress = userRole === 'MASTER_ADMIN' || userRole === 'SECTOR_ADMIN' || userRole === 'SECTOR_OPERATOR';
+  const canViewProgress = userRole === 'MASTER_ADMIN' || userRole === 'SECTOR_ADMIN' || userRole === 'SECTOR_OPERATOR' || userRole === 'EMPLOYEE';
   const canManageProgress = userRole === 'MASTER_ADMIN' || userRole === 'SECTOR_ADMIN' || userRole === 'SECTOR_OPERATOR';
-  const canViewMap = userRole === 'MASTER_ADMIN' || userRole === 'SECTOR_ADMIN' || userRole === 'SECTOR_OPERATOR';
+  const canViewMap = userRole === 'MASTER_ADMIN' || userRole === 'SECTOR_ADMIN' || userRole === 'SECTOR_OPERATOR' || userRole === 'EMPLOYEE';
 
   if (loading) {
     return (
@@ -152,66 +366,66 @@ export default function ObrasPage() {
           </div>
         </div>
 
-        {/* Métricas Rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Projetos</p>
-                <p className="text-2xl font-semibold text-gray-900">{projects.length}</p>
+        {/* Cards de Resumo */}
+        {dashboard && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Projetos</p>
+                  <p className="text-2xl font-semibold text-gray-900">{dashboard.total_projects}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Em Execução</p>
-                <p className="text-2xl font-semibold text-gray-900">{projects.filter(p => p.status === 'EM EXECUÇÃO').length}</p>
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Em Execução</p>
+                  <p className="text-2xl font-semibold text-gray-900">{dashboard.projects_in_execution}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Progresso Médio</p>
-                <p className="text-2xl font-semibold text-gray-900">
-                  {Math.round(progress.reduce((sum, p) => sum + p.physical_pct, 0) / progress.length)}%
-                </p>
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Progresso Médio</p>
+                  <p className="text-2xl font-semibold text-gray-900">{dashboard.average_progress}%</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Orçamento Total</p>
-                <p className="text-2xl font-semibold text-gray-900">R$ {projects.reduce((sum, p) => sum + p.budget, 0).toLocaleString()}</p>
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Orçamento Total</p>
+                  <p className="text-2xl font-semibold text-gray-900">R$ {dashboard.total_budget.toLocaleString()}</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Tabs */}
         <div className="bg-white rounded-lg shadow">
@@ -219,19 +433,19 @@ export default function ObrasPage() {
             <nav className="-mb-px flex space-x-8 px-6">
               {canViewProjects && (
                 <button
-                  onClick={() => setActiveTab('projects')}
+                  onClick={() => handleTabChange('projects')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm ${
                     activeTab === 'projects'
                       ? 'border-indigo-500 text-indigo-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  Projetos ({projects.length})
+                  Projetos ({Array.isArray(projects) ? projects.length : 0})
                 </button>
               )}
               {canViewProgress && (
                 <button
-                  onClick={() => setActiveTab('progress')}
+                  onClick={() => handleTabChange('progress')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm ${
                     activeTab === 'progress'
                       ? 'border-indigo-500 text-indigo-600'
@@ -243,7 +457,7 @@ export default function ObrasPage() {
               )}
               {canViewMap && (
                 <button
-                  onClick={() => setActiveTab('map')}
+                  onClick={() => handleTabChange('map')}
                   className={`py-4 px-1 border-b-2 font-medium text-sm ${
                     activeTab === 'map'
                       ? 'border-indigo-500 text-indigo-600'
@@ -257,17 +471,48 @@ export default function ObrasPage() {
           </div>
 
           <div className="p-6">
+            {/* Aba Projetos */}
             {activeTab === 'projects' && canViewProjects && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium text-gray-900">Projetos de Obras</h3>
                   {canManageProjects && (
-                    <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">
+                    <Button
+                      onClick={() => setProjectModal({ isOpen: true })}
+                      variant="primary"
+                    >
                       Novo Projeto
-                    </button>
+                    </Button>
                   )}
                 </div>
+
+                {/* Filtros */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Input
+                    name="search"
+                    label="Buscar por nome"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Digite para buscar..."
+                  />
+                  <Select
+                    name="status"
+                    label="Status"
+                    value={projectFilters.status || ''}
+                    onChange={(e) => setProjectFilters(prev => ({ ...prev, status: e.target.value || undefined }))}
+                    options={[
+                      { value: '', label: 'Todos' },
+                      { value: 'PLANEJAMENTO', label: 'Planejamento' },
+                      { value: 'LICITACAO', label: 'Licitação' },
+                      { value: 'EXECUCAO', label: 'Em Execução' },
+                      { value: 'PARALISADA', label: 'Paralisada' },
+                      { value: 'CONCLUIDA', label: 'Concluída' },
+                      { value: 'CANCELADA', label: 'Cancelada' }
+                    ]}
+                  />
+                </div>
                 
+                {/* Tabela de Projetos */}
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -290,51 +535,79 @@ export default function ObrasPage() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {projects.map((project) => (
+                      {Array.isArray(projects) && projects
+                        .filter(project => 
+                          !searchTerm || 
+                          project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          project.contract_details?.number?.toLowerCase().includes(searchTerm.toLowerCase())
+                        )
+                        .filter(project => 
+                          !projectFilters.status || project.status === projectFilters.status
+                        )
+                        .map((project) => (
                         <tr key={project.id} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {project.name}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {project.contract || '-'}
+                            {project.contract_details?.number || '-'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             R$ {project.budget.toLocaleString()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              project.status === 'EM EXECUÇÃO' 
+                              project.status === 'EXECUCAO' 
                                 ? 'bg-yellow-100 text-yellow-800'
-                                : project.status === 'CONCLUÍDO'
+                                : project.status === 'CONCLUIDA'
                                 ? 'bg-green-100 text-green-800'
                                 : project.status === 'PLANEJAMENTO'
                                 ? 'bg-blue-100 text-blue-800'
+                                : project.status === 'LICITACAO'
+                                ? 'bg-purple-100 text-purple-800'
+                                : project.status === 'PARALISADA'
+                                ? 'bg-red-100 text-red-800'
                                 : 'bg-gray-100 text-gray-800'
                             }`}>
-                              {project.status}
+                              {project.status_display}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button 
-                              onClick={() => handleViewProgress(project.id)}
+                            <Button
+                              onClick={() => setProgressModal({ isOpen: true })}
+                              variant="outline"
+                              size="sm"
                               className="text-blue-600 hover:text-blue-900 mr-3"
                             >
                               Progresso
-                            </button>
-                            <button 
-                              onClick={() => handleUploadPhoto(project.id)}
+                            </Button>
+                            <Button
+                              onClick={() => setPhotoModal({ isOpen: true })}
+                              variant="outline"
+                              size="sm"
                               className="text-green-600 hover:text-green-900 mr-3"
                             >
                               Foto
-                            </button>
+                            </Button>
                             {canManageProjects && (
                               <>
-                                <button className="text-indigo-600 hover:text-indigo-900 mr-3">
+                                <Button
+                                  onClick={() => setProjectModal({ isOpen: true, project })}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-indigo-600 hover:text-indigo-900 mr-3"
+                                >
                                   Editar
-                                </button>
-                                <button className="text-red-600 hover:text-red-900">
+                                </Button>
+                                <Button
+                                  onClick={() => handleDeleteProject(project.id)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-900"
+                                  disabled={operationLoading}
+                                >
                                   Excluir
-                                </button>
+                                </Button>
                               </>
                             )}
                           </td>
@@ -346,14 +619,18 @@ export default function ObrasPage() {
               </div>
             )}
 
+            {/* Aba Progresso */}
             {activeTab === 'progress' && canViewProgress && (
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium text-gray-900">Progresso das Obras</h3>
                   {canManageProgress && (
-                    <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">
+                    <Button
+                      onClick={() => setProgressModal({ isOpen: true })}
+                      variant="primary"
+                    >
                       Atualizar Progresso
-                    </button>
+                    </Button>
                   )}
                 </div>
                 
@@ -384,84 +661,109 @@ export default function ObrasPage() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {progress.map((prog) => (
-                        <tr key={prog.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {prog.project.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {prog.ref_month}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                                <div 
-                                  className="bg-blue-600 h-2 rounded-full" 
-                                  style={{ width: `${prog.physical_pct}%` }}
-                                ></div>
-                              </div>
-                              <span className="text-sm text-gray-900">{prog.physical_pct}%</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                                <div 
-                                  className="bg-green-600 h-2 rounded-full" 
-                                  style={{ width: `${prog.financial_pct}%` }}
-                                ></div>
-                              </div>
-                              <span className="text-sm text-gray-900">{prog.financial_pct}%</span>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {prog.notes}
-                          </td>
-                          {canManageProgress && (
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <button 
-                                onClick={() => handleUpdateProgress(prog.project.id)}
-                                className="text-indigo-600 hover:text-indigo-900 mr-3"
-                              >
-                                Editar
-                              </button>
-                              <button className="text-red-600 hover:text-red-900">
-                                Excluir
-                              </button>
+                      {Array.isArray(progress) && progress.map((prog) => {
+                        const project = Array.isArray(projects) ? projects.find(p => p.id === prog.project) : null;
+                        return (
+                          <tr key={prog.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {project?.name || 'Projeto não encontrado'}
                             </td>
-                          )}
-                        </tr>
-                      ))}
-                </tbody>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {new Date(prog.ref_month).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                  <div 
+                                    className="bg-blue-600 h-2 rounded-full" 
+                                    style={{ width: `${prog.physical_pct}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-sm text-gray-900">{prog.physical_pct}%</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                  <div 
+                                    className="bg-green-600 h-2 rounded-full" 
+                                    style={{ width: `${prog.financial_pct}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-sm text-gray-900">{prog.financial_pct}%</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-900">
+                              {prog.notes}
+                            </td>
+                            {canManageProgress && (
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <Button
+                                  onClick={() => setProgressModal({ isOpen: true, progress: prog })}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-indigo-600 hover:text-indigo-900 mr-3"
+                                >
+                                  Editar
+                                </Button>
+                                <Button
+                                  onClick={() => handleDeleteProgress(prog.id)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-900"
+                                  disabled={operationLoading}
+                                >
+                                  Excluir
+                                </Button>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
                   </table>
                 </div>
               </div>
             )}
 
+            {/* Aba Mapa */}
             {activeTab === 'map' && canViewMap && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium text-gray-900">Mapa das Obras</h3>
-                
-                <div className="bg-gray-100 rounded-lg p-8 text-center">
-                  <div className="text-gray-500 mb-4">
-                    <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                    </svg>
-                  </div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-2">Integração com Leaflet</h4>
-                  <p className="text-gray-600">
-                    Em uma implementação real, aqui seria exibido o mapa interativo com as localizações das obras.
-                  </p>
-                  <div className="mt-4 text-sm text-gray-500">
-                    <p>Projetos cadastrados: {projects.length}</p>
-                    <p>Coordenadas disponíveis: {projects.filter(p => p.location_lat && p.location_lng).length}</p>
-                  </div>
-                </div>
-              </div>
+              <ObrasMap 
+                projects={projects} 
+                onProjectClick={handleProjectClick}
+              />
             )}
           </div>
         </div>
       </div>
+
+      {/* Modais */}
+      <ProjectModal
+        isOpen={projectModal.isOpen}
+        onClose={() => setProjectModal({ isOpen: false })}
+        onSubmit={handleProjectSubmit}
+        project={projectModal.project}
+        contracts={contracts}
+        loading={operationLoading}
+      />
+
+      <ProgressModal
+        isOpen={progressModal.isOpen}
+        onClose={() => setProgressModal({ isOpen: false })}
+        onSubmit={handleProgressSubmit}
+        progress={progressModal.progress}
+        projects={projects}
+        loading={operationLoading}
+      />
+
+      <PhotoModal
+        isOpen={photoModal.isOpen}
+        onClose={() => setPhotoModal({ isOpen: false })}
+        onSubmit={handlePhotoSubmit}
+        photo={photoModal.photo}
+        projects={projects}
+        loading={operationLoading}
+      />
     </Layout>
   );
 }

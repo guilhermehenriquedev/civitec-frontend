@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,7 +35,7 @@ interface InviteInfo {
   security_code?: string;  // Tornar opcional
 }
 
-export default function CriarSenhaPage() {
+function CriarSenhaContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   
@@ -332,5 +332,13 @@ export default function CriarSenhaPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CriarSenhaPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <CriarSenhaContent />
+    </Suspense>
   );
 }

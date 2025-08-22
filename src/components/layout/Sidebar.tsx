@@ -56,6 +56,7 @@ const navigation = [
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const pathname = usePathname();
   const { user, logout } = useAuth();
   
@@ -82,6 +83,18 @@ export default function Sidebar() {
 
   const accessibleNavigation = navigation.filter(canAccess);
 
+  const toggleExpanded = (itemName: string) => {
+    setExpandedItems(prev => 
+      prev.includes(itemName) 
+        ? prev.filter(name => name !== itemName)
+        : [...prev, itemName]
+    );
+  };
+
+  const hasChildren = (itemName: string) => {
+    return itemName === 'Gerenciar Usuários' || itemName === 'RH';
+  };
+
   return (
     <div className={`bg-gray-900 text-white transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
       <div className="flex flex-col h-full">
@@ -104,91 +117,151 @@ export default function Sidebar() {
         <nav className="flex-1 px-2 py-4 space-y-1">
           {accessibleNavigation.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            const hasChildren = item.name === 'Gerenciar Usuários';
+            const itemHasChildren = hasChildren(item.name);
+            const shouldShowChildren = itemHasChildren && !collapsed && (isActive || expandedItems.includes(item.name));
             
             return (
               <div key={item.name}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                  }`}
-                >
-                  <div className="w-5 h-5 mr-3 flex-shrink-0">
-                    {item.name === 'Dashboard' && (
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                <div className="flex items-center">
+                  <Link
+                    href={item.href}
+                    className={`flex-1 flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-indigo-600 text-white'
+                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    }`}
+                  >
+                    <div className="w-5 h-5 mr-3 flex-shrink-0">
+                      {item.name === 'Dashboard' && (
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+                        </svg>
+                      )}
+                      {item.name === 'RH' && (
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                        </svg>
+                      )}
+                      {item.name === 'Tributos' && (
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      )}
+                      {item.name === 'Licitação' && (
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      )}
+                      {item.name === 'Obras' && (
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                      )}
+                      {item.name === 'Relatórios' && (
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      )}
+                      {item.name === 'Gerenciar Usuários' && (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                        </svg>
+                      )}
+                    </div>
+                    {!collapsed && <span>{item.name}</span>}
+                  </Link>
+                  
+                  {/* Botão de expandir/recolher para itens com subpáginas */}
+                  {itemHasChildren && !collapsed && (
+                    <button
+                      onClick={() => toggleExpanded(item.name)}
+                      className="p-1 text-gray-400 hover:text-white transition-colors"
+                    >
+                      <svg 
+                        className={`w-4 h-4 transition-transform ${shouldShowChildren ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
-                    )}
-                    {item.name === 'RH' && (
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                      </svg>
-                    )}
-                    {item.name === 'Tributos' && (
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    )}
-                    {item.name === 'Licitação' && (
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                    )}
-                    {item.name === 'Obras' && (
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                    )}
-                    {item.name === 'Relatórios' && (
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                      </svg>
-                    )}
-                    {item.name === 'Gerenciar Usuários' && (
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                      </svg>
-                    )}
-                  </div>
-                  {!collapsed && <span>{item.name}</span>}
-                </Link>
+                    </button>
+                  )}
+                </div>
                 
                 {/* Subpáginas para Gerenciar Usuários */}
-                {hasChildren && !collapsed && isActive && (
+                {shouldShowChildren && (
                   <div className="ml-6 mt-1 space-y-1">
-                    <Link
-                      href="/usuarios"
-                      className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        pathname === '/usuarios'
-                          ? 'bg-indigo-500 text-white'
-                          : 'text-gray-400 hover:bg-gray-600 hover:text-white'
-                      }`}
-                    >
-                      <span>• Visão Geral</span>
-                    </Link>
-                    <Link
-                      href="/usuarios/convites"
-                      className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        pathname === '/usuarios/convites'
-                          ? 'bg-indigo-500 text-white'
-                          : 'text-gray-400 hover:bg-gray-600 hover:text-white'
-                      }`}
-                    >
-                      <span>• Convites</span>
-                    </Link>
-                    <Link
-                      href="/usuarios/usuarios"
-                      className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        pathname === '/usuarios/usuarios'
-                          ? 'bg-indigo-500 text-white'
-                          : 'text-gray-400 hover:bg-gray-600 hover:text-white'
-                      }`}
-                    >
-                      <span>• Usuários</span>
-                    </Link>
+                    {item.name === 'Gerenciar Usuários' && (
+                      <>
+                        <Link
+                          href="/usuarios"
+                          className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            pathname === '/usuarios'
+                              ? 'bg-indigo-500 text-white'
+                              : 'text-gray-400 hover:bg-gray-600 hover:text-white'
+                          }`}
+                        >
+                          <span>• Visão Geral</span>
+                        </Link>
+                        <Link
+                          href="/usuarios/convites"
+                          className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            pathname === '/usuarios/convites'
+                              ? 'bg-indigo-500 text-white'
+                              : 'text-gray-400 hover:bg-gray-600 hover:text-white'
+                          }`}
+                        >
+                          <span>• Convites</span>
+                        </Link>
+                        <Link
+                          href="/usuarios/usuarios"
+                          className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            pathname === '/usuarios/usuarios'
+                              ? 'bg-indigo-500 text-white'
+                              : 'text-gray-400 hover:bg-gray-600 hover:text-white'
+                          }`}
+                        >
+                          <span>• Usuários</span>
+                        </Link>
+                      </>
+                    )}
+                    
+                    {/* Subpáginas para RH */}
+                    {item.name === 'RH' && (
+                      <>
+                        <Link
+                          href="/rh/funcionarios"
+                          className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            pathname === '/rh/funcionarios'
+                              ? 'bg-indigo-500 text-white'
+                              : 'text-gray-400 hover:bg-gray-600 hover:text-white'
+                          }`}
+                        >
+                          <span>• Funcionários</span>
+                        </Link>
+                        <Link
+                          href="/rh/ferias"
+                          className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            pathname === '/rh/ferias'
+                              ? 'bg-indigo-500 text-white'
+                              : 'text-gray-400 hover:bg-gray-600 hover:text-white'
+                          }`}
+                        >
+                          <span>• Solicitação de Férias</span>
+                        </Link>
+                        <Link
+                          href="/rh/contracheque"
+                          className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                            pathname === '/rh/contracheque'
+                              ? 'bg-indigo-500 text-white'
+                              : 'text-gray-400 hover:bg-gray-600 hover:text-white'
+                          }`}
+                        >
+                          <span>• Contracheque</span>
+                        </Link>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
