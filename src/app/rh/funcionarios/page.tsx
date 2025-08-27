@@ -1,372 +1,290 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/auth';
-import Layout from '@/components/layout/Layout';
+import { Card } from '@/components/ui';
 import { DataTable } from '@/components/tables';
-import { 
-  UsersIcon,
-  CurrencyDollarIcon,
-  EyeIcon
-} from '@heroicons/react/24/outline';
-
-interface Funcionario {
-  id: number;
-  nome: string;
-  matricula: string;
-  cargo: string;
-  lotacao: string;
-  status: 'ATIVO' | 'INATIVO' | 'FERIAS' | 'LICENCA';
-  salario: number;
-  setor: string;
-  faltas: number;
-  atestados: number;
-  ultimasFerias: string;
-  solicitacoes: number;
-  documentos: number;
-}
+import { EmployeeLifeModal } from '@/components/rh';
+import { useEmployees } from '@/hooks/rh';
+import { Toast } from '@/components/ui';
 
 export default function FuncionariosPage() {
-  const { user } = useAuth();
-  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const {
+    employees,
+    loading,
+    error,
+    stats,
+    totalCount,
+    currentPage,
+    pageSize,
+    fetchEmployees,
+    fetchEmployeeStats
+  } = useEmployees();
 
-  const [loading, setLoading] = useState(true);
+  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' | 'warning' } | null>(null);
 
-
-  // Verificar se o usuário tem acesso ao módulo RH
-  const canAccessRH = user && (
-    user.role === 'MASTER_ADMIN' || 
-    user.role === 'SECTOR_ADMIN' || 
-    user.role === 'SECTOR_OPERATOR' || 
-    user.role === 'EMPLOYEE'
-  );
+  // Garantir que employees seja sempre um array
+  const safeEmployees = Array.isArray(employees) ? employees : [];
 
   useEffect(() => {
-    if (canAccessRH) {
-      loadFuncionarios();
-    }
-  }, [canAccessRH]);
+    console.log('FuncionariosPage: useEffect executado');
+    fetchEmployees();
+    fetchEmployeeStats();
+  }, []);
 
+  useEffect(() => {
+    console.log('FuncionariosPage: employees atualizado:', employees);
+    console.log('FuncionariosPage: employees é array?', Array.isArray(employees));
+    console.log('FuncionariosPage: employees length:', employees?.length);
+  }, [employees]);
 
-
-  const loadFuncionarios = async () => {
-    try {
-      setLoading(true);
-      // Dados mock para demonstração
-      const mockData: Funcionario[] = [
-        {
-          id: 1,
-          nome: 'João Silva Santos',
-          matricula: '001',
-          cargo: 'Analista de RH',
-          lotacao: 'Secretaria de Administração',
-          status: 'ATIVO',
-          salario: 4500.00,
-          setor: 'RH',
-          faltas: 2,
-          atestados: 1,
-          ultimasFerias: '2024-01-15',
-          solicitacoes: 3,
-          documentos: 8
-        },
-        {
-          id: 2,
-          nome: 'Maria Oliveira Costa',
-          matricula: '002',
-          cargo: 'Auxiliar Administrativo',
-          lotacao: 'Secretaria de Educação',
-          status: 'ATIVO',
-          salario: 3200.00,
-          setor: 'EDUCACAO',
-          faltas: 0,
-          atestados: 0,
-          ultimasFerias: '2024-02-20',
-          solicitacoes: 1,
-          documentos: 6
-        },
-        {
-          id: 3,
-          nome: 'Pedro Almeida Lima',
-          matricula: '003',
-          cargo: 'Técnico de Contabilidade',
-          lotacao: 'Secretaria de Finanças',
-          status: 'FERIAS',
-          salario: 3800.00,
-          setor: 'FINANCAS',
-          faltas: 1,
-          atestados: 2,
-          ultimasFerias: '2024-03-01',
-          solicitacoes: 2,
-          documentos: 7
-        },
-        {
-          id: 4,
-          nome: 'Ana Paula Rodrigues',
-          matricula: '004',
-          cargo: 'Assistente Social',
-          lotacao: 'Secretaria de Assistência Social',
-          status: 'ATIVO',
-          salario: 4100.00,
-          setor: 'ASSISTENCIA_SOCIAL',
-          faltas: 3,
-          atestados: 1,
-          ultimasFerias: '2023-12-10',
-          solicitacoes: 4,
-          documentos: 9
-        },
-        {
-          id: 5,
-          nome: 'Carlos Eduardo Ferreira',
-          matricula: '005',
-          cargo: 'Engenheiro Civil',
-          lotacao: 'Secretaria de Obras',
-          status: 'LICENCA',
-          salario: 5200.00,
-          setor: 'OBRAS',
-          faltas: 5,
-          atestados: 3,
-          ultimasFerias: '2023-11-05',
-          solicitacoes: 1,
-          documentos: 5
-        }
-      ];
-
-      setFuncionarios(mockData);
-    } catch (error) {
-      console.error('Erro ao carregar funcionários:', error);
-    } finally {
-      setLoading(false);
-    }
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setToast({ message, type });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ATIVO':
-        return 'bg-green-100 text-green-800';
-      case 'FERIAS':
-        return 'bg-blue-100 text-blue-800';
-      case 'LICENCA':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'INATIVO':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
+  const handleViewDetails = (employee: any) => {
+    console.log('Abrindo modal para funcionário:', employee);
+    setSelectedEmployee(employee);
+    setIsModalOpen(true);
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'ATIVO':
-        return 'Ativo';
-      case 'FERIAS':
-        return 'Em Férias';
-      case 'LICENCA':
-        return 'Licença';
-      case 'INATIVO':
-        return 'Inativo';
-      default:
-        return status;
-    }
+  const handleCloseModal = () => {
+    console.log('Fechando modal');
+    setIsModalOpen(false);
+    setSelectedEmployee(null);
   };
 
-  const getSetorLabel = (setor: string) => {
-    switch (setor) {
-      case 'RH':
-        return 'Recursos Humanos';
-      case 'EDUCACAO':
-        return 'Educação';
-      case 'FINANCAS':
-        return 'Finanças';
-      case 'ASSISTENCIA_SOCIAL':
-        return 'Assistência Social';
-      case 'OBRAS':
-        return 'Obras';
-      default:
-        return setor;
-    }
+  const handlePageChange = (page: number) => {
+    fetchEmployees({}, page, pageSize);
   };
 
-  const handleViewDetails = (funcionario: Funcionario) => {
-    // Aqui você pode implementar um modal ou navegação para ver detalhes
-    alert(`Detalhes de ${funcionario.nome}:\n` +
-          `Salário: R$ ${funcionario.salario.toLocaleString()}\n` +
-          `Setor: ${getSetorLabel(funcionario.setor)}\n` +
-          `Faltas: ${funcionario.faltas}\n` +
-          `Atestados: ${funcionario.atestados}\n` +
-          `Últimas Férias: ${new Date(funcionario.ultimasFerias).toLocaleDateString('pt-BR')}\n` +
-          `Solicitações: ${funcionario.solicitacoes}\n` +
-          `Documentos: ${funcionario.documentos}`);
+  const handleItemsPerPageChange = (newPageSize: number) => {
+    fetchEmployees({}, 1, newPageSize);
   };
 
-  if (!canAccessRH) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Acesso Negado</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Você não tem permissão para acessar esta página.
-            </p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+  const handleFiltersChange = (filters: any) => {
+    fetchEmployees(filters, 1, pageSize);
+  };
 
-  // Calcular estatísticas
-  const totalFuncionarios = funcionarios.length;
-  const funcionariosAtivos = funcionarios.filter(f => f.status === 'ATIVO').length;
-  const valorFolhaPagamento = funcionarios.reduce((total, f) => total + f.salario, 0);
-
-  const tableData = funcionarios.map(funcionario => ({
-    id: funcionario.id,
-    funcionario: funcionario.nome,
-    matricula: funcionario.matricula,
-    cargo: funcionario.cargo,
-    lotacao: funcionario.lotacao,
-    status: (
-      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(funcionario.status)}`}>
-        {getStatusLabel(funcionario.status)}
-      </span>
-    ),
-    acoes: (
-      <button
-        onClick={() => handleViewDetails(funcionario)}
-        className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-      >
-        <EyeIcon className="w-4 h-4 mr-1" />
-        Ver Vida
-      </button>
-    )
-  }));
-
-  const tableColumns = [
-    { key: 'funcionario', label: 'Funcionário' },
+  const columns = [
+    { key: 'nome_completo', label: 'Nome' },
     { key: 'matricula', label: 'Matrícula' },
     { key: 'cargo', label: 'Cargo' },
     { key: 'lotacao', label: 'Lotação' },
+    { key: 'regime', label: 'Regime' },
     { key: 'status', label: 'Status' },
-    { key: 'acoes', label: 'Ações' }
+    { key: 'admissao_dt', label: 'Data de Admissão' },
+    {
+      key: 'actions',
+      label: 'Ações',
+      render: (value: any, row: any) => {
+        console.log('Renderizando ações para row:', row);
+        return (
+          <button
+            onClick={() => {
+              console.log('Botão Ver Vida clicado para:', row);
+              handleViewDetails(row);
+            }}
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            Ver Vida
+          </button>
+        );
+      }
+    }
   ];
 
-  return (
-    <Layout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Funcionários</h1>
-              <p className="text-gray-600 mt-2">Gestão completa dos funcionários da organização</p>
+  const filterOptions = [
+    { key: 'status', label: 'Status', options: [
+      { value: 'ATIVO', label: 'Ativo' },
+      { value: 'INATIVO', label: 'Inativo' },
+      { value: 'APOSENTADO', label: 'Aposentado' },
+      { value: 'DEMITIDO', label: 'Demitido' }
+    ]},
+    { key: 'regime', label: 'Regime', options: [
+      { value: 'CLT', label: 'CLT' },
+      { value: 'ESTATUTARIO', label: 'Estatutário' },
+      { value: 'TEMPORARIO', label: 'Temporário' },
+      { value: 'TERCEIRIZADO', label: 'Terceirizado' }
+    ]},
+    { key: 'lotacao', label: 'Lotação', options: [
+      { value: 'RH', label: 'RH' },
+      { value: 'TI', label: 'TI' },
+      { value: 'ADMINISTRATIVO', label: 'Administrativo' },
+      { value: 'OPERACIONAL', label: 'Operacional' }
+    ]}
+  ];
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
             </div>
-            <div className="flex items-center space-x-2">
-              <UsersIcon className="w-8 h-8 text-blue-600" />
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Erro ao carregar dados</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    fetchEmployees();
+                    fetchEmployeeStats();
+                  }}
+                  className="bg-red-100 text-red-800 px-3 py-2 rounded-md text-sm font-medium hover:bg-red-200"
+                >
+                  Tentar novamente
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        {/* Informativos */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Total de Funcionários */}
-          <div className="bg-white rounded-lg shadow p-6">
+  return (
+    <div className="p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestão de Funcionários</h1>
+        <p className="text-gray-600">Gerencie os funcionários da empresa</p>
+      </div>
+
+      {/* Cards de Totalizadores */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <div className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <UsersIcon className="w-6 h-6 text-blue-600" />
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
                 </div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total de Funcionários</p>
-                <p className="text-2xl font-bold text-gray-900">{totalFuncionarios}</p>
-                <p className="text-sm text-gray-500">{funcionariosAtivos} ativos</p>
+                {loading ? (
+                  <div className="animate-pulse bg-gray-200 h-6 w-16 rounded"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900">{stats?.total_funcionarios || 0}</p>
+                )}
               </div>
             </div>
           </div>
+        </Card>
 
-          {/* Valor da Folha de Pagamento */}
-          <div className="bg-white rounded-lg shadow p-6">
+        <Card>
+          <div className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <CurrencyDollarIcon className="w-6 h-6 text-green-600" />
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Funcionários Ativos</p>
+                {loading ? (
+                  <div className="animate-pulse bg-gray-200 h-6 w-16 rounded"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900">{stats?.ativos || 0}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="p-6">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                  </svg>
                 </div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Folha de Pagamento</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  R$ {valorFolhaPagamento.toLocaleString()}
-                </p>
-                <p className="text-sm text-gray-500">Valor total mensal</p>
+                {loading ? (
+                  <div className="animate-pulse bg-gray-200 h-6 w-20 rounded"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900">
+                    R$ {stats?.folha_pagamento?.toLocaleString('pt-BR') || '0,00'}
+                  </p>
+                )}
               </div>
             </div>
           </div>
+        </Card>
 
-          {/* Funcionários por Status */}
-          <div className="bg-white rounded-lg shadow p-6">
+        <Card>
+          <div className="p-6">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <UsersIcon className="w-6 h-6 text-purple-600" />
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
                 </div>
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Status</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {funcionarios.filter(f => f.status === 'FERIAS').length}
-                </p>
-                <p className="text-sm text-gray-500">Em férias</p>
+                <p className="text-sm font-medium text-gray-600">Em Férias</p>
+                {loading ? (
+                  <div className="animate-pulse bg-gray-200 h-6 w-16 rounded"></div>
+                ) : (
+                  <p className="text-2xl font-bold text-gray-900">{stats?.em_ferias || 0}</p>
+                )}
               </div>
             </div>
           </div>
-        </div>
+        </Card>
+      </div>
 
-
-
-        {/* Tabela de Funcionários */}
-        {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-          </div>
-        ) : (
+      {/* Tabela */}
+      <Card>
+        <div className="p-6">
           <DataTable
-            data={tableData}
-            columns={tableColumns}
+            data={safeEmployees}
+            columns={columns}
             title="Lista de Funcionários"
             emptyMessage="Nenhum funcionário encontrado"
             searchable={true}
             searchPlaceholder="Buscar funcionários..."
-            filters={[
-              {
-                key: 'status',
-                options: [
-                  { value: 'ATIVO', label: 'Ativo' },
-                  { value: 'FERIAS', label: 'Em Férias' },
-                  { value: 'LICENCA', label: 'Licença' },
-                  { value: 'INATIVO', label: 'Inativo' }
-                ],
-                placeholder: 'Status'
-              },
-              {
-                key: 'setor',
-                options: [
-                  { value: 'RH', label: 'Recursos Humanos' },
-                  { value: 'EDUCACAO', label: 'Educação' },
-                  { value: 'FINANCAS', label: 'Finanças' },
-                  { value: 'ASSISTENCIA_SOCIAL', label: 'Assistência Social' },
-                  { value: 'OBRAS', label: 'Obras' }
-                ],
-                placeholder: 'Setor'
-              }
-            ]}
+            filters={filterOptions}
             pagination={true}
-            itemsPerPage={10}
+            itemsPerPage={pageSize}
             showItemsPerPageSelector={true}
+            itemsPerPageOptions={[10, 20, 50, 100]}
           />
-        )}
-      </div>
-    </Layout>
+        </div>
+      </Card>
+
+      {/* Modal de Detalhes */}
+      {isModalOpen && selectedEmployee && (
+        <EmployeeLifeModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          employee={selectedEmployee}
+        />
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+    </div>
   );
 }

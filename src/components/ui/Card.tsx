@@ -18,9 +18,9 @@ export default function Card({
   bodyClassName = ''
 }: CardProps) {
   return (
-    <div className={`bg-white rounded-lg shadow border border-gray-200 ${className}`}>
+    <div className={`bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden ${className}`}>
       {(title || subtitle) && (
-        <div className={`px-6 py-4 border-b border-gray-200 ${headerClassName}`}>
+        <div className={`px-6 py-4 border-b border-gray-200 bg-gray-50 ${headerClassName}`}>
           {title && (
             <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           )}
@@ -30,7 +30,7 @@ export default function Card({
         </div>
       )}
       
-      <div className={`px-6 py-6 ${bodyClassName}`}>
+      <div className={`px-6 py-6 bg-white ${bodyClassName}`}>
         {children}
       </div>
     </div>
