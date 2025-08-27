@@ -17,3 +17,6 @@ export { default as Card } from './ui/Card';
 
 // Examples
 export { default as ExampleUsage } from './examples/ExampleUsage';
+
+// Auth
+export { default as ProtectedRoute } from './auth/ProtectedRoute';

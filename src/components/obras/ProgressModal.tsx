@@ -38,7 +38,7 @@ export function ProgressModal({
     if (progress) {
       setFormData({
         project: progress.project,
-        ref_month: progress.ref_month,
+        ref_month: progress.ref_month.substring(0, 7), // Converter YYYY-MM-DD para YYYY-MM
         physical_pct: progress.physical_pct,
         financial_pct: progress.financial_pct,
         notes: progress.notes
@@ -74,6 +74,13 @@ export function ProgressModal({
       newErrors.financial_pct = 'Progresso financeiro deve estar entre 0% e 100%';
     }
 
+    // Validar se o mês não é futuro
+    const selectedDate = new Date(formData.ref_month + '-01');
+    const today = new Date();
+    if (selectedDate > today) {
+      newErrors.ref_month = 'Mês de referência não pode ser futuro';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -87,8 +94,7 @@ export function ProgressModal({
         ...formData,
         ref_month: formData.ref_month + '-01' // Adicionar dia para formar data completa
       };
-      console.log('Dados do formulário antes do envio:', formData);
-      console.log('Dados convertidos para envio:', submitData);
+      
       onSubmit(submitData);
     }
   };
@@ -104,6 +110,9 @@ export function ProgressModal({
     // Garantir que as porcentagens sejam sempre números válidos
     if (field === 'physical_pct' || field === 'financial_pct') {
       processedValue = parseFloat(value) || 0;
+      // Limitar a 100%
+      if (processedValue > 100) processedValue = 100;
+      if (processedValue < 0) processedValue = 0;
     }
     
     setFormData(prev => ({ ...prev, [field]: processedValue }));
@@ -114,15 +123,15 @@ export function ProgressModal({
 
   const projectOptions = projects.map(project => ({
     value: project.id.toString(),
-    label: project.name
+    label: `${project.name} (${project.status_display})`
   }));
 
-  // Gerar opções de mês para os últimos 24 meses
+  // Gerar opções de mês para os últimos 36 meses
   const generateMonthOptions = () => {
     const options = [];
     const today = new Date();
     
-    for (let i = 0; i < 24; i++) {
+    for (let i = 0; i < 36; i++) {
       const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const value = date.toISOString().slice(0, 7); // YYYY-MM
       const label = date.toLocaleDateString('pt-BR', { 
@@ -136,6 +145,11 @@ export function ProgressModal({
   };
 
   const monthOptions = generateMonthOptions();
+
+  // Função para formatar porcentagem
+  const formatPercentage = (value: number) => {
+    return Math.round(value * 100) / 100;
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={progress ? 'Editar Progresso' : 'Novo Progresso'}>
@@ -161,34 +175,94 @@ export function ProgressModal({
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            name="physical_pct"
-            label="Progresso Físico (%) *"
-            type="number"
-            value={formData.physical_pct}
-            onChange={(e) => handleInputChange('physical_pct', parseFloat(e.target.value) || 0)}
-            error={errors.physical_pct}
-            required
-          />
+          <div className="space-y-2">
+            <Input
+              name="physical_pct"
+              label="Progresso Físico (%) *"
+              type="number"
+              value={formData.physical_pct}
+              onChange={(e) => handleInputChange('physical_pct', parseFloat(e.target.value) || 0)}
+              error={errors.physical_pct}
+              required
+              min="0"
+              max="100"
+              step="0.01"
+            />
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${formData.physical_pct}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-gray-500">Progresso atual: {formatPercentage(formData.physical_pct)}%</p>
+          </div>
 
-          <Input
-            name="financial_pct"
-            label="Progresso Financeiro (%) *"
-            type="number"
-            value={formData.financial_pct}
-            onChange={(e) => handleInputChange('financial_pct', parseFloat(e.target.value) || 0)}
-            error={errors.financial_pct}
-            required
+          <div className="space-y-2">
+            <Input
+              name="financial_pct"
+              label="Progresso Financeiro (%) *"
+              type="number"
+              value={formData.financial_pct}
+              onChange={(e) => handleInputChange('financial_pct', parseFloat(e.target.value) || 0)}
+              error={errors.financial_pct}
+              required
+              min="0"
+              max="100"
+              step="0.01"
+            />
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                style={{ width: `${formData.financial_pct}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-gray-500">Progresso atual: {formatPercentage(formData.financial_pct)}%</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Observações
+          </label>
+          <textarea
+            name="notes"
+            value={formData.notes}
+            onChange={(e) => handleInputChange('notes', e.target.value)}
+            placeholder="Descreva o progresso realizado, desafios encontrados, próximos passos, etc."
+            rows={4}
+            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl 
+              focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
+              transition-all duration-200 bg-white text-gray-900 font-medium 
+              hover:border-gray-400 resize-none"
           />
         </div>
 
-        <Input
-          name="notes"
-          label="Observações"
-          value={formData.notes}
-          onChange={(e) => handleInputChange('notes', e.target.value)}
-          placeholder="Descreva o progresso realizado, desafios encontrados, etc."
-        />
+        {/* Resumo do progresso */}
+        {formData.project && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-blue-900 mb-2">Resumo do Progresso</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-blue-700">Físico:</span>
+                <span className="ml-2 font-medium text-blue-900">{formatPercentage(formData.physical_pct)}%</span>
+              </div>
+              <div>
+                <span className="text-blue-700">Financeiro:</span>
+                <span className="ml-2 font-medium text-blue-900">{formatPercentage(formData.financial_pct)}%</span>
+              </div>
+            </div>
+            {formData.physical_pct > formData.financial_pct && (
+              <p className="text-xs text-blue-600 mt-2">
+                ⚠️ Progresso físico maior que financeiro - verifique se há atrasos no pagamento
+              </p>
+            )}
+            {formData.financial_pct > formData.physical_pct && (
+              <p className="text-xs text-blue-600 mt-2">
+                ⚠️ Progresso financeiro maior que físico - verifique se há adiantamentos
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-end space-x-3 pt-4">
           <Button

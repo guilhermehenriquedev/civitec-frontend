@@ -63,8 +63,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(response.user);
       console.log('👤 Usuário definido no contexto:', response.user);
       
-      console.log('🔄 Redirecionando para /dashboard...');
-      router.push('/dashboard');
+      console.log('🔄 Redirecionando para /inicio...');
+      router.push('/inicio');
     } catch (error) {
       console.error('❌ Erro no login:', error);
       throw error;

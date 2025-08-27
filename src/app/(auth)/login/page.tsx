@@ -2,18 +2,14 @@
 
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { useAuth } from '@/lib/auth';
 import { EyeIcon, EyeSlashIcon, BuildingOfficeIcon, MapIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 
-// Schema de validação
-const loginSchema = z.object({
-  email: z.string().email('E-mail inválido'),
-  password: z.string().min(1, 'Senha é obrigatória'),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
+type LoginFormData = {
+  email: string;
+  password: string;
+  rememberMe: boolean;
+};
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -25,14 +21,24 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors },
     setError,
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  });
+  } = useForm<LoginFormData>();
 
   const onSubmit = async (data: LoginFormData) => {
+    // Validação manual
+    if (!data.email || !data.email.includes('@')) {
+      setError('email', { message: 'E-mail inválido' });
+      return;
+    }
+    
+    if (!data.password || data.password.trim().length === 0) {
+      setError('password', { message: 'Senha é obrigatória' });
+      return;
+    }
+
     try {
       setIsLoading(true);
       console.log('🚀 Iniciando processo de login...', data.email);
+      console.log('🔐 Manter conectado:', data.rememberMe);
       
       await login(data);
       console.log('✅ Login concluído com sucesso!');
@@ -168,6 +174,19 @@ export default function LoginPage() {
                 {errors.password && (
                   <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
                 )}
+              </div>
+
+              {/* Checkbox Manter Conectado */}
+              <div className="flex items-center">
+                <input
+                  {...register('rememberMe')}
+                  type="checkbox"
+                  id="rememberMe"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
+                  Manter-me conectado por 2 horas
+                </label>
               </div>
 
               {/* Erro geral */}

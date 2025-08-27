@@ -2,11 +2,13 @@ import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
 // Configuração base da API
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+console.log('API_BASE_URL configurada:', API_BASE_URL);
 
 // Tipos para autenticação
 export interface LoginCredentials {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface LoginResponse {
@@ -140,8 +142,8 @@ class ApiClient {
     this.accessToken = data.access;
     this.refreshToken = data.refresh;
     
-    // Salvar tokens no localStorage
-    this.saveTokensToStorage();
+    // Salvar tokens no localStorage com expiração baseada em rememberMe
+    this.saveTokensToStorage(credentials.rememberMe);
     
     return data;
   }
@@ -235,23 +237,46 @@ class ApiClient {
   }
 
   // Métodos privados para gerenciamento de tokens
-  private saveTokensToStorage(): void {
+  private saveTokensToStorage(rememberMe?: boolean): void {
     if (typeof window !== 'undefined') {
+      const now = Date.now();
+      const expirationTime = rememberMe ? 2 * 60 * 60 * 1000 : 15 * 60 * 1000; // 2 horas ou 15 minutos
+      const expiresAt = now + expirationTime;
+      
       localStorage.setItem('civitec_access_token', this.accessToken || '');
       localStorage.setItem('civitec_refresh_token', this.refreshToken || '');
+      localStorage.setItem('civitec_token_expires', expiresAt.toString());
+      localStorage.setItem('civitec_remember_me', rememberMe ? 'true' : 'false');
+      
       console.log('🔐 Tokens salvos no localStorage:');
       console.log('🔐 Access Token:', this.accessToken ? 'Salvo' : 'Não salvo');
       console.log('🔐 Refresh Token:', this.refreshToken ? 'Salvo' : 'Não salvo');
+      console.log('🔐 Expira em:', new Date(expiresAt).toLocaleString());
+      console.log('🔐 Manter conectado:', rememberMe);
     }
   }
 
   private loadTokensFromStorage(): void {
     if (typeof window !== 'undefined') {
+      const expiresAt = localStorage.getItem('civitec_token_expires');
+      const now = Date.now();
+      
+      // Verificar se o token expirou
+      if (expiresAt && now > parseInt(expiresAt)) {
+        console.log('🔐 Token expirado, limpando...');
+        this.clearTokens();
+        return;
+      }
+      
       this.accessToken = localStorage.getItem('civitec_access_token');
       this.refreshToken = localStorage.getItem('civitec_refresh_token');
+      
       console.log('🔐 Tokens carregados do localStorage:');
       console.log('🔐 Access Token:', this.accessToken ? 'Presente' : 'Ausente');
       console.log('🔐 Refresh Token:', this.refreshToken ? 'Presente' : 'Ausente');
+      if (expiresAt) {
+        console.log('🔐 Expira em:', new Date(parseInt(expiresAt)).toLocaleString());
+      }
     }
   }
 
@@ -262,11 +287,25 @@ class ApiClient {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('civitec_access_token');
       localStorage.removeItem('civitec_refresh_token');
+      localStorage.removeItem('civitec_token_expires');
+      localStorage.removeItem('civitec_remember_me');
     }
   }
 
   // Getters para verificar estado da autenticação
   get isAuthenticated(): boolean {
+    if (typeof window !== 'undefined') {
+      const expiresAt = localStorage.getItem('civitec_token_expires');
+      const now = Date.now();
+      
+      // Verificar se o token expirou
+      if (expiresAt && now > parseInt(expiresAt)) {
+        console.log('🔐 Token expirado, limpando...');
+        this.clearTokens();
+        return false;
+      }
+    }
+    
     const hasToken = !!this.accessToken;
     console.log('🔐 ApiClient.isAuthenticated:', hasToken, 'Token:', this.accessToken ? 'Presente' : 'Ausente');
     return hasToken;

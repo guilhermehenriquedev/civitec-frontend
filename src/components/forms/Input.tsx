@@ -1,9 +1,9 @@
 import React from 'react';
 
-interface InputProps {
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   name: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel';
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'date';
   placeholder?: string;
   value?: string | number;
   defaultValue?: string | number;
@@ -29,7 +29,8 @@ export default function Input({
   required = false,
   disabled = false,
   className = '',
-  fullWidth = true
+  fullWidth = true,
+  ...props
 }: InputProps) {
   return (
     <div className={`${fullWidth ? 'w-full' : ''} ${className}`}>
@@ -51,6 +52,7 @@ export default function Input({
         onBlur={onBlur}
         required={required}
         disabled={disabled}
+        {...props}
         className={`
           w-full px-4 py-3 border-2 border-gray-300 rounded-xl 
           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 

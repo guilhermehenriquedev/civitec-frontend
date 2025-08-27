@@ -35,6 +35,7 @@ export function PhotoModal({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     if (photo) {
@@ -53,7 +54,7 @@ export function PhotoModal({
         title: '',
         description: '',
         photo: new File([], ''),
-        taken_date: '',
+        taken_date: new Date().toISOString().split('T')[0], // Data atual como padrão
         location: ''
       });
       setPreviewUrl('');
@@ -64,7 +65,7 @@ export function PhotoModal({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.project) {
+    if (!formData.project || formData.project === 0) {
       newErrors.project = 'Projeto é obrigatório';
     }
 
@@ -78,6 +79,26 @@ export function PhotoModal({
 
     if (!formData.taken_date) {
       newErrors.taken_date = 'Data da foto é obrigatória';
+    } else {
+      // Validar se a data não é futura
+      const selectedDate = new Date(formData.taken_date);
+      const today = new Date();
+      if (selectedDate > today) {
+        newErrors.taken_date = 'Data da foto não pode ser futura';
+      }
+    }
+
+    // Validar arquivo se for uma nova foto
+    if (!photo && formData.photo.size > 0) {
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (formData.photo.size > maxSize) {
+        newErrors.photo = 'Arquivo muito grande. Tamanho máximo: 10MB';
+      }
+
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(formData.photo.type)) {
+        newErrors.photo = 'Tipo de arquivo não suportado. Use: JPG, PNG, GIF ou WebP';
+      }
     }
 
     setErrors(newErrors);
@@ -100,25 +121,67 @@ export function PhotoModal({
   };
 
   const handleFileChange = (file: File) => {
-    setFormData(prev => ({ ...prev, photo: file }));
-    
     if (file) {
+      // Validar arquivo
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        setErrors(prev => ({ ...prev, photo: 'Arquivo muito grande. Tamanho máximo: 10MB' }));
+        return;
+      }
+
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        setErrors(prev => ({ ...prev, photo: 'Tipo de arquivo não suportado. Use: JPG, PNG, GIF ou WebP' }));
+        return;
+      }
+
+      setFormData(prev => ({ ...prev, photo: file }));
+      
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
+      
+      if (errors.photo) {
+        setErrors(prev => ({ ...prev, photo: '' }));
+      }
     }
-    
-    if (errors.photo) {
-      setErrors(prev => ({ ...prev, photo: '' }));
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileChange(e.dataTransfer.files[0]);
     }
   };
 
   const projectOptions = projects.map(project => ({
     value: project.id.toString(),
-    label: project.name
+    label: `${project.name} (${project.address})`
   }));
 
+  // Função para formatar tamanho do arquivo
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={photo ? 'Editar Foto' : 'Nova Foto'}>
+    <Modal isOpen={isOpen} onClose={onClose} title={photo ? 'Editar Foto' : 'Nova Foto'} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
         <Select
           name="project"
@@ -137,16 +200,25 @@ export function PhotoModal({
           onChange={(e) => handleInputChange('title', e.target.value)}
           error={errors.title}
           required
-          placeholder="Ex: Fundação concluída, Estrutura em andamento"
+          placeholder="Ex: Fundação concluída, Estrutura em andamento, Acabamentos finais"
         />
 
-        <Input
-          name="description"
-          label="Descrição"
-          value={formData.description}
-          onChange={(e) => handleInputChange('description', e.target.value)}
-          placeholder="Descreva o que a foto mostra"
-        />
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Descrição
+          </label>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={(e) => handleInputChange('description', e.target.value)}
+            placeholder="Descreva o que a foto mostra, contexto da obra, detalhes importantes..."
+            rows={3}
+            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl 
+              focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 
+              transition-all duration-200 bg-white text-gray-900 font-medium 
+              hover:border-gray-400 resize-none"
+          />
+        </div>
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">
@@ -154,10 +226,22 @@ export function PhotoModal({
           </label>
           
           {!photo && (
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+            <div
+              className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors duration-200 ${
+                dragActive 
+                  ? 'border-indigo-400 bg-indigo-50' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+            >
               <div className="space-y-1 text-center">
                 <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
+                  className={`mx-auto h-12 w-12 ${
+                    dragActive ? 'text-indigo-400' : 'text-gray-400'
+                  }`}
                   stroke="currentColor"
                   fill="none"
                   viewBox="0 0 48 48"
@@ -192,7 +276,14 @@ export function PhotoModal({
                   </label>
                   <p className="pl-1">ou arraste e solte</p>
                 </div>
-                <p className="text-xs text-gray-500">PNG, JPG, GIF até 10MB</p>
+                <p className="text-xs text-gray-500">
+                  PNG, JPG, GIF, WebP até 10MB
+                </p>
+                {formData.photo.size > 0 && (
+                  <p className="text-xs text-indigo-600">
+                    Arquivo selecionado: {formData.photo.name} ({formatFileSize(formData.photo.size)})
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -220,7 +311,8 @@ export function PhotoModal({
                     setFormData(prev => ({ ...prev, photo: new File([], '') }));
                     setPreviewUrl('');
                   }}
-                  className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
+                  className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700 transition-colors"
+                  title="Remover foto"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -235,12 +327,12 @@ export function PhotoModal({
           <Input
             name="taken_date"
             label="Data da Foto *"
-            type="text"
+            type="date"
             value={formData.taken_date}
             onChange={(e) => handleInputChange('taken_date', e.target.value)}
             error={errors.taken_date}
             required
-            placeholder="YYYY-MM-DD"
+            max={new Date().toISOString().split('T')[0]}
           />
 
           <Input
@@ -248,9 +340,36 @@ export function PhotoModal({
             label="Localização"
             value={formData.location}
             onChange={(e) => handleInputChange('location', e.target.value)}
-            placeholder="Ex: Canteiro de obras, Rua das Flores"
+            placeholder="Ex: Canteiro de obras, Rua das Flores, Setor A"
           />
         </div>
+
+        {/* Informações da foto */}
+        {formData.photo.size > 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-2">Informações do Arquivo</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+              <div>
+                <span className="font-medium">Nome:</span>
+                <span className="ml-2">{formData.photo.name}</span>
+              </div>
+              <div>
+                <span className="font-medium">Tamanho:</span>
+                <span className="ml-2">{formatFileSize(formData.photo.size)}</span>
+              </div>
+              <div>
+                <span className="font-medium">Tipo:</span>
+                <span className="ml-2">{formData.photo.type || 'Não identificado'}</span>
+              </div>
+              <div>
+                <span className="font-medium">Última modificação:</span>
+                <span className="ml-2">
+                  {new Date(formData.photo.lastModified).toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex justify-end space-x-3 pt-4">
           <Button

@@ -11,8 +11,8 @@ export default function HomePage() {
     const token = localStorage.getItem('accessToken');
     
     if (token) {
-      // Se há token, redirecionar para o dashboard
-      router.push('/dashboard');
+          // Se há token, redirecionar para o início
+    router.push('/inicio');
     } else {
       // Se não há token, redirecionar para o login
       router.push('/login');
