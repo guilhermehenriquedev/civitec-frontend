@@ -31,78 +31,74 @@ export default function VacationApproveDialog({
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
+  const footer = (
+    <div className="flex justify-end space-x-3">
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={loading}
+        className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-all duration-200"
+      >
+        Cancelar
+      </button>
+      <button
+        type="button"
+        onClick={onConfirm}
+        disabled={loading}
+        className="px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 border border-transparent rounded-xl hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-all duration-200 shadow-lg hover:shadow-xl"
+      >
+        {loading ? (
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <span>Aprovando...</span>
+          </div>
+        ) : (
+          'Confirmar Aprovação'
+        )}
+      </button>
+    </div>
+  );
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Confirmar Aprovação de Férias"
-      size="sm"
+      size="md"
+      footer={footer}
     >
-      <div className="space-y-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800">
-                Confirmar aprovação de férias
-              </h3>
-              <div className="mt-2 text-sm text-blue-700">
-                <p>Esta ação não pode ser desfeita.</p>
-              </div>
-            </div>
+      {/* Informações da solicitação - EXATAMENTE igual a Gerenciar Usuários */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-100">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-green-800">Confirmar aprovação de férias</p>
+            <p className="text-sm text-green-700">Esta ação não pode ser desfeita.</p>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Funcionário</label>
-            <p className="mt-1 text-sm text-gray-900">{vacation.employee.nome_completo}</p>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Período</label>
-            <p className="mt-1 text-sm text-gray-900">
-              {formatDate(vacation.period_start)} a {formatDate(vacation.period_end)}
-            </p>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Dias Solicitados</label>
-            <p className="mt-1 text-sm text-gray-900">{vacation.days_requested} dias</p>
-          </div>
+      {/* Detalhes da solicitação */}
+      <div className="space-y-5">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Funcionário</label>
+          <p className="px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900">{vacation.employee.nome_completo}</p>
         </div>
-
-        <div className="flex justify-end space-x-3 pt-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Aprovando...
-              </>
-            ) : (
-              'Aprovar Férias'
-            )}
-          </button>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Período</label>
+          <p className="px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900">
+            {formatDate(vacation.period_start)} a {formatDate(vacation.period_end)}
+          </p>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Dias Solicitados</label>
+          <p className="px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900">{vacation.days_requested} dias</p>
         </div>
       </div>
     </Modal>

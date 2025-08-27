@@ -120,6 +120,21 @@ export default function EmployeeLifeModal({ isOpen, onClose, employee }: Employe
       title={`Vida do Funcionário: ${employee.nome_completo}`}
       size="lg"
     >
+      {/* Informações do funcionário - EXATAMENTE igual a Gerenciar Usuários */}
+      <div className="mb-6 p-4 bg-gradient-to-r from-gray-50 to-indigo-50 rounded-xl border border-gray-100">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-900">{employee.nome_completo}</p>
+            <p className="text-sm text-gray-600">Matrícula: {employee.matricula}</p>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
@@ -153,44 +168,37 @@ export default function EmployeeLifeModal({ isOpen, onClose, employee }: Employe
         <>
           {/* Tab Detalhes */}
           {activeTab === 'detalhes' && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-4">Informações Pessoais</h4>
-                  <dl className="space-y-3">
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Nome Completo</dt>
-                      <dd className="text-sm text-gray-900">{employee.nome_completo}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Matrícula</dt>
-                      <dd className="text-sm text-gray-900">{employee.matricula}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Cargo</dt>
-                      <dd className="text-sm text-gray-900">{employee.cargo}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Lotação</dt>
-                      <dd className="text-sm text-gray-900">{employee.lotacao}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Regime</dt>
-                      <dd className="text-sm text-gray-900">{employee.regime}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Status</dt>
-                      <dd>
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(employee.status)}`}>
-                          {employee.status}
-                        </span>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-sm font-medium text-gray-500">Data de Admissão</dt>
-                      <dd className="text-sm text-gray-900">{formatDate(employee.admissao_dt)}</dd>
-                    </div>
-                  </dl>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nome Completo</label>
+                  <p className="px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900">{employee.nome_completo}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Matrícula</label>
+                  <p className="px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900">{employee.matricula}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Cargo</label>
+                  <p className="px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900">{employee.cargo}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Lotação</label>
+                  <p className="px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900">{employee.lotacao}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Regime</label>
+                  <p className="px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900">{employee.regime}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <span className={`inline-flex px-3 py-2 text-sm font-medium rounded-xl ${getStatusColor(employee.status)}`}>
+                    {employee.status}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Data de Admissão</label>
+                  <p className="px-4 py-3 bg-gray-50 rounded-xl text-sm text-gray-900">{formatDate(employee.admissao_dt)}</p>
                 </div>
               </div>
             </div>
@@ -201,43 +209,48 @@ export default function EmployeeLifeModal({ isOpen, onClose, employee }: Employe
             <div>
               <h4 className="text-lg font-medium text-gray-900 mb-4">Histórico de Férias</h4>
               {vacations.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Nenhuma solicitação de férias encontrada</p>
+                <div className="text-center py-8 bg-gray-50 rounded-xl">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-500">Nenhuma solicitação de férias encontrada</p>
+                </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dias</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Justificativa</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {vacations.map((vacation) => (
-                        <tr key={vacation.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div className="space-y-4">
+                  {vacations.map((vacation) => (
+                    <div key={vacation.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Período</label>
+                          <p className="text-sm text-gray-900">
                             {formatDate(vacation.period_start)} - {formatDate(vacation.period_end)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{vacation.days_requested}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              vacation.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                              vacation.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
-                              vacation.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {vacation.status === 'PENDING' ? 'PENDENTE' :
-                               vacation.status === 'APPROVED' ? 'APROVADA' :
-                               vacation.status === 'REJECTED' ? 'REJEITADA' :
-                               vacation.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">{vacation.reason || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Dias</label>
+                          <p className="text-sm text-gray-900">{vacation.days_requested}</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            vacation.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                            vacation.status === 'APPROVED' ? 'bg-green-100 text-green-800' :
+                            vacation.status === 'REJECTED' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {vacation.status === 'PENDING' ? 'PENDENTE' :
+                             vacation.status === 'APPROVED' ? 'APROVADA' :
+                             vacation.status === 'REJECTED' ? 'REJEITADA' :
+                             vacation.status}
+                          </span>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Justificativa</label>
+                          <p className="text-sm text-gray-900">{vacation.reason || '-'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -248,41 +261,48 @@ export default function EmployeeLifeModal({ isOpen, onClose, employee }: Employe
             <div>
               <h4 className="text-lg font-medium text-gray-900 mb-4">Histórico de Contracheques</h4>
               {payslips.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Nenhum contracheque encontrado</p>
+                <div className="text-center py-8 bg-gray-50 rounded-xl">
+                  <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <p className="mt-2 text-sm text-gray-500">Nenhum contracheque encontrado</p>
+                </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Competência</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salário Bruto</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descontos</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salário Líquido</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {payslips.map((payslip) => (
-                        <tr key={payslip.id}>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{payslip.competence}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                <div className="space-y-4">
+                  {payslips.map((payslip) => (
+                    <div key={payslip.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Competência</label>
+                          <p className="text-sm text-gray-900">{payslip.competence}</p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Salário Bruto</label>
+                          <p className="text-sm text-gray-900">
                             R$ {payslip.gross_salary?.toFixed(2) || '0,00'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Descontos</label>
+                          <p className="text-sm text-gray-900">
                             R$ {payslip.deductions?.toFixed(2) || '0,00'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Salário Líquido</label>
+                          <p className="text-sm text-gray-900">
                             R$ {payslip.net_salary?.toFixed(2) || '0,00'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              {payslip.status || 'PAGO'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </p>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                          <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                            {payslip.status || 'PAGO'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
