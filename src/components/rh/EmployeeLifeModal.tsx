@@ -89,7 +89,7 @@ export default function EmployeeLifeModal({ isOpen, onClose, employee }: Employe
     }
   };
 
-  const fetchEmployeePayslips = async (page: number = 1, size: number = 10) => {
+  const fetchEmployeePayslips = async (page: number = 1, size: number = 20) => {
     if (!employee) return;
     
     try {

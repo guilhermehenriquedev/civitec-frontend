@@ -20,3 +20,7 @@ export { default as ExampleUsage } from './examples/ExampleUsage';
 
 // Auth
 export { default as ProtectedRoute } from './auth/ProtectedRoute';
+
+// Layout
+export { default as Layout } from './layout/Layout';
+export { default as Sidebar } from './layout/Sidebar';

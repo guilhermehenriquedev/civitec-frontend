@@ -2,137 +2,247 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
-
-interface Taxpayer {
-  id: number;
-  name: string;
-  doc: string;
-  address: string;
-  type: 'PF' | 'PJ';
-}
-
-interface Invoice {
-  id: number;
-  taxpayer: Taxpayer;
-  number: string;
-  issue_dt: string;
-  service_code: string;
-  amount: number;
-  status: string;
-}
-
-interface Assessment {
-  id: number;
-  taxpayer: Taxpayer;
-  tax_kind: 'ISS' | 'IPTU' | 'ITBI';
-  competence: string;
-  principal: number;
-  multa: number;
-  juros: number;
-  status: string;
-}
+import { useTaxpayers, useInvoices, useAssessments } from '@/hooks/tributos';
+import { 
+  TaxpayerModal, 
+  DeleteConfirmModal, 
+  InvoiceModal, 
+  AssessmentModal 
+} from '@/components/tributos';
+import { Taxpayer, Invoice, Assessment } from '@/types/tributos';
 
 export default function TributosPage() {
-  const [taxpayers, setTaxpayers] = useState<Taxpayer[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [assessments, setAssessments] = useState<Assessment[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('taxpayers');
   const [userRole, setUserRole] = useState<string>('MASTER_ADMIN');
   const [userSector, setUserSector] = useState<string>('TRIBUTOS');
+  
+  // Estados dos modais
+  const [showTaxpayerModal, setShowTaxpayerModal] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showAssessmentModal, setShowAssessmentModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  
+  // Estados para edição
+  const [editingTaxpayer, setEditingTaxpayer] = useState<Taxpayer | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [editingAssessment, setEditingAssessment] = useState<Assessment | null>(null);
+  const [deletingItem, setDeletingItem] = useState<{ type: string; id: number; name: string } | null>(null);
+  
+  // Estados de loading
+  const [loading, setLoading] = useState(false);
+
+  // Hooks
+  const {
+    taxpayers,
+    loading: taxpayersLoading,
+    error: taxpayersError,
+    stats: taxpayersStats,
+    totalCount: taxpayersTotalCount,
+    currentPage: taxpayersCurrentPage,
+    pageSize: taxpayersPageSize,
+    fetchTaxpayers,
+    fetchTaxpayerStats,
+    createTaxpayer,
+    updateTaxpayer,
+    deleteTaxpayer
+  } = useTaxpayers();
+
+  const {
+    invoices,
+    loading: invoicesLoading,
+    error: invoicesError,
+    stats: invoicesStats,
+    totalCount: invoicesTotalCount,
+    currentPage: invoicesCurrentPage,
+    pageSize: invoicesPageSize,
+    fetchInvoices,
+    fetchInvoiceStats,
+    createInvoice,
+    updateInvoice,
+    deleteInvoice,
+    cancelInvoice,
+    downloadInvoice
+  } = useInvoices();
+
+  const {
+    assessments,
+    loading: assessmentsLoading,
+    error: assessmentsError,
+    stats: assessmentsStats,
+    totalCount: assessmentsTotalCount,
+    currentPage: assessmentsCurrentPage,
+    pageSize: assessmentsPageSize,
+    fetchAssessments,
+    fetchAssessmentStats,
+    createAssessment,
+    updateAssessment,
+    deleteAssessment,
+    generateCode,
+    downloadAssessment
+  } = useAssessments();
 
   useEffect(() => {
     // Simular dados do usuário logado
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem('civitec_access_token');
     if (token) {
       // Em uma implementação real, aqui seria feita uma chamada para obter os dados do usuário
       setUserRole('MASTER_ADMIN'); // Será sobrescrito pelos dados reais
       setUserSector('TRIBUTOS');
     }
 
-    // Dados mock para demonstração
-    const mockTaxpayers: Taxpayer[] = [
-      {
-        id: 1,
-        name: 'Empresa ABC Ltda',
-        doc: '12.345.678/0001-90',
-        address: 'Rua das Flores, 123 - Centro',
-        type: 'PJ'
-      },
-      {
-        id: 2,
-        name: 'João da Silva',
-        doc: '123.456.789-00',
-        address: 'Av. Principal, 456 - Bairro Novo',
-        type: 'PF'
-      },
-      {
-        id: 3,
-        name: 'Maria Santos ME',
-        doc: '98.765.432/0001-10',
-        address: 'Rua do Comércio, 789 - Centro',
-        type: 'PJ'
-      }
-    ];
-
-    const mockInvoices: Invoice[] = [
-      {
-        id: 1,
-        taxpayer: mockTaxpayers[0],
-        number: 'NF001/2024',
-        issue_dt: '2024-01-15',
-        service_code: '01.01.01',
-        amount: 5000.00,
-        status: 'EMITIDA'
-      },
-      {
-        id: 2,
-        taxpayer: mockTaxpayers[1],
-        number: 'NF002/2024',
-        issue_dt: '2024-01-20',
-        service_code: '01.02.01',
-        amount: 1200.00,
-        status: 'EMITIDA'
-      }
-    ];
-
-    const mockAssessments: Assessment[] = [
-      {
-        id: 1,
-        taxpayer: mockTaxpayers[0],
-        tax_kind: 'ISS',
-        competence: '2024-01',
-        principal: 500.00,
-        multa: 0.00,
-        juros: 0.00,
-        status: 'EMITIDA'
-      },
-      {
-        id: 2,
-        taxpayer: mockTaxpayers[1],
-        tax_kind: 'IPTU',
-        competence: '2024',
-        principal: 800.00,
-        multa: 0.00,
-        juros: 0.00,
-        status: 'EMITIDA'
-      }
-    ];
-
-    setTaxpayers(mockTaxpayers);
-    setInvoices(mockInvoices);
-    setAssessments(mockAssessments);
-    setLoading(false);
+    // Carregar dados iniciais
+    loadInitialData();
   }, []);
 
-  const handleGenerateAssessment = (taxpayerId: number) => {
-    // Simular geração de avaliação
-    alert(`Avaliação gerada para o contribuinte ${taxpayerId}! Em uma implementação real, aqui seria criada a avaliação no sistema.`);
+  const loadInitialData = async () => {
+    try {
+      await Promise.all([
+        fetchTaxpayers(),
+        fetchInvoices(),
+        fetchAssessments(),
+        fetchTaxpayerStats(),
+        fetchInvoiceStats(),
+        fetchAssessmentStats()
+      ]);
+    } catch (error) {
+      console.error('Erro ao carregar dados iniciais:', error);
+    }
   };
 
-  const handleGenerateCode = (assessmentId: number) => {
-    // Simular geração de código de barras/guia
-    alert(`Código de barras gerado para a avaliação ${assessmentId}! Em uma implementação real, aqui seria gerado o código de pagamento.`);
+  // Handlers para Contribuintes
+  const handleCreateTaxpayer = async (data: Partial<Taxpayer>) => {
+    setLoading(true);
+    try {
+      if (editingTaxpayer) {
+        await updateTaxpayer(editingTaxpayer.id, data);
+      } else {
+        await createTaxpayer(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditTaxpayer = (taxpayer: Taxpayer) => {
+    setEditingTaxpayer(taxpayer);
+    setShowTaxpayerModal(true);
+  };
+
+  const handleDeleteTaxpayer = (taxpayer: Taxpayer) => {
+    setDeletingItem({ type: 'taxpayer', id: taxpayer.id, name: taxpayer.name });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteTaxpayer = async () => {
+    if (deletingItem?.type === 'taxpayer') {
+      setLoading(true);
+      try {
+        await deleteTaxpayer(deletingItem.id);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Handlers para Notas Fiscais
+  const handleCreateInvoice = async (data: Partial<Invoice>) => {
+    setLoading(true);
+    try {
+      if (editingInvoice) {
+        await updateInvoice(editingInvoice.id, data);
+      } else {
+        await createInvoice(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditInvoice = (invoice: Invoice) => {
+    setEditingInvoice(invoice);
+    setShowInvoiceModal(true);
+  };
+
+  const handleDeleteInvoice = (invoice: Invoice) => {
+    setDeletingItem({ type: 'invoice', id: invoice.id, name: invoice.number });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteInvoice = async () => {
+    if (deletingItem?.type === 'invoice') {
+      setLoading(true);
+      try {
+        await deleteInvoice(deletingItem.id);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleCancelInvoice = async (invoice: Invoice, reason: string) => {
+    setLoading(true);
+    try {
+      await cancelInvoice(invoice.id, reason);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handlers para Avaliações
+  const handleCreateAssessment = async (data: Partial<Assessment>) => {
+    setLoading(true);
+    try {
+      if (editingAssessment) {
+        await updateAssessment(editingAssessment.id, data);
+      } else {
+        await createAssessment(data);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditAssessment = (assessment: Assessment) => {
+    setEditingAssessment(assessment);
+    setShowAssessmentModal(true);
+  };
+
+  const handleDeleteAssessment = (assessment: Assessment) => {
+    setDeletingItem({ type: 'assessment', id: assessment.id, name: `${assessment.tax_kind} - ${assessment.taxpayer.name}` });
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteAssessment = async () => {
+    if (deletingItem?.type === 'assessment') {
+      setLoading(true);
+      try {
+        await deleteAssessment(deletingItem.id);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const handleGenerateCode = async (assessment: Assessment) => {
+    try {
+      const result = await generateCode(assessment.id);
+      console.log('Código gerado:', result);
+      // Aqui você pode mostrar o código em um modal ou notificação
+    } catch (error) {
+      console.error('Erro ao gerar código:', error);
+    }
+  };
+
+  // Fechar modais
+  const closeModals = () => {
+    setShowTaxpayerModal(false);
+    setShowInvoiceModal(false);
+    setShowAssessmentModal(false);
+    setShowDeleteModal(false);
+    setEditingTaxpayer(null);
+    setEditingInvoice(null);
+    setEditingAssessment(null);
+    setDeletingItem(null);
   };
 
   // Verificar permissões baseado no perfil
@@ -143,7 +253,7 @@ export default function TributosPage() {
   const canViewAssessments = userRole === 'MASTER_ADMIN' || userRole === 'SECTOR_ADMIN' || userRole === 'SECTOR_OPERATOR';
   const canManageAssessments = userRole === 'MASTER_ADMIN' || userRole === 'SECTOR_ADMIN';
 
-  if (loading) {
+  if (taxpayersLoading && invoicesLoading && assessmentsLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center h-64">
@@ -182,7 +292,7 @@ export default function TributosPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Contribuintes</p>
-                <p className="text-2xl font-semibold text-gray-900">{taxpayers.length}</p>
+                <p className="text-2xl font-semibold text-gray-900">{taxpayersStats?.total || 0}</p>
               </div>
             </div>
           </div>
@@ -196,7 +306,7 @@ export default function TributosPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Notas Fiscais</p>
-                <p className="text-2xl font-semibold text-gray-900">{invoices.length}</p>
+                <p className="text-2xl font-semibold text-gray-900">{invoicesStats?.total || 0}</p>
               </div>
             </div>
           </div>
@@ -210,7 +320,7 @@ export default function TributosPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Avaliações</p>
-                <p className="text-2xl font-semibold text-gray-900">{assessments.length}</p>
+                <p className="text-2xl font-semibold text-gray-900">{assessmentsStats?.total || 0}</p>
               </div>
             </div>
           </div>
@@ -224,7 +334,9 @@ export default function TributosPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Arrecadação</p>
-                <p className="text-2xl font-semibold text-gray-900">R$ {assessments.reduce((sum, a) => sum + a.principal, 0).toLocaleString()}</p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  R$ {((invoicesStats?.total_value || 0) + (assessmentsStats?.total_value || 0)).toLocaleString()}
+                </p>
               </div>
             </div>
           </div>
@@ -243,7 +355,7 @@ export default function TributosPage() {
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  Contribuintes ({taxpayers.length})
+                  Contribuintes ({taxpayersStats?.total || 0})
                 </button>
               )}
               {canViewInvoices && (
@@ -255,7 +367,7 @@ export default function TributosPage() {
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  Notas Fiscais ({invoices.length})
+                  Notas Fiscais ({invoicesStats?.total || 0})
                 </button>
               )}
               {canViewAssessments && (
@@ -267,7 +379,7 @@ export default function TributosPage() {
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  Avaliações ({assessments.length})
+                  Avaliações ({assessmentsStats?.total || 0})
                 </button>
               )}
             </nav>
@@ -279,71 +391,96 @@ export default function TributosPage() {
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium text-gray-900">Lista de Contribuintes</h3>
                   {canManageTaxpayers && (
-                    <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">
+                    <button 
+                      onClick={() => setShowTaxpayerModal(true)}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                    >
                       Novo Contribuinte
                     </button>
                   )}
                 </div>
                 
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Nome/Razão Social
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Documento
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tipo
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Endereço
-                        </th>
-                        {canManageTaxpayers && (
+                {taxpayersError ? (
+                  <div className="text-center py-8 bg-red-50 rounded-xl border border-red-200">
+                    <p className="text-sm text-red-600">{taxpayersError}</p>
+                    <button
+                      onClick={() => fetchTaxpayers()}
+                      className="mt-3 px-4 py-2 text-sm font-medium text-red-600 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
+                    >
+                      Tentar Novamente
+                    </button>
+                  </div>
+                ) : taxpayers.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-xl">
+                    <p className="text-sm text-gray-500">Nenhum contribuinte encontrado</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Ações
+                            Nome/Razão Social
                           </th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {taxpayers.map((taxpayer) => (
-                        <tr key={taxpayer.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {taxpayer.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {taxpayer.doc}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              taxpayer.type === 'PJ' 
-                                ? 'bg-blue-100 text-blue-800' 
-                                : 'bg-green-100 text-green-800'
-                            }`}>
-                              {taxpayer.type === 'PJ' ? 'Pessoa Jurídica' : 'Pessoa Física'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {taxpayer.address}
-                          </td>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Documento
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Tipo
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Endereço
+                          </th>
                           {canManageTaxpayers && (
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <button className="text-indigo-600 hover:text-indigo-900 mr-3">
-                                Editar
-                              </button>
-                              <button className="text-red-600 hover:text-red-900">
-                                Excluir
-                              </button>
-                            </td>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Ações
+                            </th>
                           )}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {taxpayers.map((taxpayer) => (
+                          <tr key={taxpayer.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {taxpayer.name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {taxpayer.doc}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                taxpayer.type === 'PJ' 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {taxpayer.type === 'PJ' ? 'Pessoa Jurídica' : 'Pessoa Física'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {taxpayer.address}
+                            </td>
+                            {canManageTaxpayers && (
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button 
+                                  onClick={() => handleEditTaxpayer(taxpayer)}
+                                  className="text-indigo-600 hover:text-indigo-900 mr-3"
+                                >
+                                  Editar
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteTaxpayer(taxpayer)}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  Excluir
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 
@@ -352,73 +489,102 @@ export default function TributosPage() {
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium text-gray-900">Notas Fiscais</h3>
                   {canManageInvoices && (
-                    <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">
+                    <button 
+                      onClick={() => setShowInvoiceModal(true)}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                    >
                       Nova Nota Fiscal
                     </button>
                   )}
                 </div>
                 
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Número
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Contribuinte
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Data Emissão
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Valor
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        {canManageInvoices && (
+                {invoicesError ? (
+                  <div className="text-center py-8 bg-red-50 rounded-xl border border-red-200">
+                    <p className="text-sm text-red-600">{invoicesError}</p>
+                    <button
+                      onClick={() => fetchInvoices()}
+                      className="mt-3 px-4 py-2 text-sm font-medium text-red-600 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
+                    >
+                      Tentar Novamente
+                    </button>
+                  </div>
+                ) : invoices.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-xl">
+                    <p className="text-sm text-gray-500">Nenhuma nota fiscal encontrada</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Ações
+                            Número
                           </th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {invoices.map((invoice) => (
-                        <tr key={invoice.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {invoice.number}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {invoice.taxpayer.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {new Date(invoice.issue_dt).toLocaleDateString('pt-BR')}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            R$ {invoice.amount.toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              {invoice.status}
-                            </span>
-                          </td>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Contribuinte
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Data Emissão
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Valor
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
                           {canManageInvoices && (
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <button className="text-indigo-600 hover:text-indigo-900 mr-3">
-                                Editar
-                              </button>
-                              <button className="text-red-600 hover:text-red-900">
-                                Excluir
-                              </button>
-                            </td>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Ações
+                            </th>
                           )}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {invoices.map((invoice) => (
+                          <tr key={invoice.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {invoice.number}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {invoice.taxpayer.name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {new Date(invoice.issue_dt).toLocaleDateString('pt-BR')}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              R$ {invoice.amount.toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                invoice.status === 'EMITIDA' ? 'bg-green-100 text-green-800' :
+                                invoice.status === 'CANCELADA' ? 'bg-red-100 text-red-800' :
+                                'bg-blue-100 text-blue-800'
+                              }`}>
+                                {invoice.status}
+                              </span>
+                            </td>
+                            {canManageInvoices && (
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button 
+                                  onClick={() => handleEditInvoice(invoice)}
+                                  className="text-indigo-600 hover:text-indigo-900 mr-3"
+                                >
+                                  Editar
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteInvoice(invoice)}
+                                  className="text-red-600 hover:text-red-900"
+                                >
+                                  Excluir
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
 
@@ -427,92 +593,163 @@ export default function TributosPage() {
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium text-gray-900">Avaliações</h3>
                   {canManageAssessments && (
-                    <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">
+                    <button 
+                      onClick={() => setShowAssessmentModal(true)}
+                      className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
+                    >
                       Nova Avaliação
                     </button>
                   )}
                 </div>
                 
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Contribuinte
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Tipo de Tributo
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Competência
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Valor Principal
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Ações
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {assessments.map((assessment) => (
-                        <tr key={assessment.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {assessment.taxpayer.name}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              assessment.tax_kind === 'ISS' 
-                                ? 'bg-blue-100 text-blue-800'
-                                : assessment.tax_kind === 'IPTU'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-purple-100 text-purple-800'
-                            }`}>
-                              {assessment.tax_kind}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {assessment.competence}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            R$ {assessment.principal.toLocaleString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              {assessment.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button 
-                              onClick={() => handleGenerateCode(assessment.id)}
-                              className="text-green-600 hover:text-green-900 mr-3"
-                            >
-                              Gerar Código
-                            </button>
-                            {canManageAssessments && (
-                              <>
-                                <button className="text-indigo-600 hover:text-indigo-900 mr-3">
-                                  Editar
-                                </button>
-                                <button className="text-red-600 hover:text-red-900">
-                                  Excluir
-                                </button>
-                              </>
-                            )}
-                          </td>
+                {assessmentsError ? (
+                  <div className="text-center py-8 bg-red-50 rounded-xl border border-red-200">
+                    <p className="text-sm text-red-600">{assessmentsError}</p>
+                    <button
+                      onClick={() => fetchAssessments()}
+                      className="mt-3 px-4 py-2 text-sm font-medium text-red-600 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
+                    >
+                      Tentar Novamente
+                    </button>
+                  </div>
+                ) : assessments.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-xl">
+                    <p className="text-sm text-gray-500">Nenhuma avaliação encontrada</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Contribuinte
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Tipo de Tributo
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Competência
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Valor Principal
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Ações
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {assessments.map((assessment) => (
+                          <tr key={assessment.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {assessment.taxpayer.name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                assessment.tax_kind === 'ISS' 
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : assessment.tax_kind === 'IPTU'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-purple-100 text-purple-800'
+                              }`}>
+                                {assessment.tax_kind}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {assessment.competence}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              R$ {assessment.principal.toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                assessment.status === 'PENDENTE' ? 'bg-yellow-100 text-yellow-800' :
+                                assessment.status === 'EMITIDA' ? 'bg-blue-100 text-blue-800' :
+                                assessment.status === 'PAGA' ? 'bg-green-100 text-green-800' :
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {assessment.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <button 
+                                onClick={() => handleGenerateCode(assessment)}
+                                className="text-green-600 hover:text-green-900 mr-3"
+                              >
+                                Gerar Código
+                              </button>
+                              {canManageAssessments && (
+                                <>
+                                  <button 
+                                    onClick={() => handleEditAssessment(assessment)}
+                                    className="text-indigo-600 hover:text-indigo-900 mr-3"
+                                  >
+                                    Editar
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteAssessment(assessment)}
+                                    className="text-red-600 hover:text-red-900"
+                                  >
+                                    Excluir
+                                  </button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Modais */}
+      <TaxpayerModal
+        isOpen={showTaxpayerModal}
+        onClose={closeModals}
+        taxpayer={editingTaxpayer}
+        onSubmit={handleCreateTaxpayer}
+        loading={loading}
+      />
+
+      <InvoiceModal
+        isOpen={showInvoiceModal}
+        onClose={closeModals}
+        invoice={editingInvoice}
+        taxpayers={taxpayers}
+        onSubmit={handleCreateInvoice}
+        loading={loading}
+      />
+
+      <AssessmentModal
+        isOpen={showAssessmentModal}
+        onClose={closeModals}
+        assessment={editingAssessment}
+        taxpayers={taxpayers}
+        onSubmit={handleCreateAssessment}
+        loading={loading}
+      />
+
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={closeModals}
+        onConfirm={
+          deletingItem?.type === 'taxpayer' ? confirmDeleteTaxpayer :
+          deletingItem?.type === 'invoice' ? confirmDeleteInvoice :
+          confirmDeleteAssessment
+        }
+        title="Confirmar Exclusão"
+        message={`Tem certeza que deseja excluir o `}
+        itemName={deletingItem?.name || ''}
+        loading={loading}
+      />
     </Layout>
   );
 }
